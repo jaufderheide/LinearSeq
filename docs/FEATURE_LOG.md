@@ -48,6 +48,13 @@
 - Status: Partial
 - Scope: Track name is editable via the toolbar input for the selected track.
 - Limitations: No validation and no per-track label list yet.
+
+### Delete Item
+- Status: Functional
+- Scope: Deletes selected MIDI items from tracks using Delete/Backspace keys. Support for multi-selection.
+- Limitations: Requires TrackView or EventList to have focus.
+- How to verify: Select one or multiple items in TrackView and press Delete.
+
 - How to verify: Select a track row, edit the Track input, and confirm the Track View label updates.
 
 ### Add Track
@@ -86,3 +93,7 @@
 ### Feature: BPM/PPQN Controls (2026-01-29)
 - Added `Fl_Spinner` for BPM and `Fl_Choice` for PPQN in top toolbar.
 - Wired to update `Song` and `Sequencer` in real-time.
+
+### Feature: Track Deletion (2026-01-29)
+- Added `Delete Track` button to Toolbar.
+- Logic removes track, updates pointers, handles last-track scenarios, and refreshes UI.

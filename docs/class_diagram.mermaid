@@ -3,17 +3,32 @@ classDiagram
         -Fl_Scroll* trackScroll_
         -TrackView* trackView_
         -EventList* eventList_
-        -Fl_Button* playButton_
-        -Fl_Button* stopButton_
-        -Fl_Button* recordButton_
+        -MainToolbar* toolbar_
         -Sequencer sequencer_
         -AlsaDriver driver_
         +show()
         -onPlay()
         -onStop()
         -onRecord()
+        -onDelete()
+        -onDeleteTrack()
     }
-    
+
+    class MainToolbar {
+        -Fl_Button* playButton_
+        -Fl_Button* stopButton_
+        -Fl_Button* recordButton_
+        -Fl_Button* addTrackButton_
+        -Fl_Button* deleteTrackButton_
+        -Fl_Button* addItemButton_
+        +setOnPlay(cb)
+        +setOnStop(cb)
+        +setOnRecord(cb)
+        +setOnAddTrack(cb)
+        +setOnDeleteTrack(cb)
+        +setOnAddItem(cb)
+    }
+
     class Sequencer {
         -std::vector<PlaybackEvent> playbackQueue_
         -Song song_

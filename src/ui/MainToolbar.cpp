@@ -69,28 +69,47 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
     // LseqMenuButton and Icons use FL_FREE_FONT.
     
 	addTrackButton_ = new Fl_Button(toolX += 34, y + 4, 60, 24, "+Track");
+    addTrackButton_->tooltip("Add Track");
     addTrackButton_->callback([](Fl_Widget*, void* data) {
         auto* self = static_cast<MainToolbar*>(data);
         if (self->onAddTrack_) self->onAddTrack_();
     }, this);
 
-	addItemButton_ = new Fl_Button(toolX += 64, y + 4, 60, 24, "+Item");
-    addItemButton_->callback([](Fl_Widget*, void* data) {
+	deleteTrackButton_ = new Fl_Button(toolX += 68, y + 4, 60, 24, "-Track");
+    deleteTrackButton_->tooltip("Delete Track");
+    deleteTrackButton_->callback([](Fl_Widget*, void* data) {
         auto* self = static_cast<MainToolbar*>(data);
-        if (self->onAddItem_) self->onAddItem_();
+        if (self->onDeleteTrack_) self->onDeleteTrack_();
     }, this);
+
 
 	playButton_->box(FL_FLAT_BOX);
 	stopButton_->box(FL_FLAT_BOX);
 	recordButton_->box(FL_FLAT_BOX);
 	addTrackButton_->box(FL_FLAT_BOX);
-	addItemButton_->box(FL_FLAT_BOX);
+    deleteTrackButton_->box(FL_FLAT_BOX);
 
 	playButton_->color(FL_LIGHT2);
 	stopButton_->color(FL_LIGHT2);
 	recordButton_->color(FL_LIGHT2);
 	addTrackButton_->color(FL_LIGHT2);
-	addItemButton_->color(FL_LIGHT2);
+    deleteTrackButton_->color(FL_LIGHT2);
+
+    trackNameInput_ = new Fl_Input(toolX += 146, y + 4, 140, 24, "Track Name");
+	trackNameInput_->value("Track 1");
+	trackNameInput_->box(FL_FLAT_BOX);
+    trackNameInput_->callback([](Fl_Widget*, void* data) {
+        auto* self = static_cast<MainToolbar*>(data);
+        if (self->onTrackNameChanged_) self->onTrackNameChanged_(self->trackNameInput_->value());
+    }, this);
+
+    addItemButton_ = new Fl_Button(toolX += 148, y + 4, 60, 24, "+Item");
+    addItemButton_->callback([](Fl_Widget*, void* data) {
+        auto* self = static_cast<MainToolbar*>(data);
+        if (self->onAddItem_) self->onAddItem_();
+    }, this);
+    addItemButton_->box(FL_FLAT_BOX);
+    addItemButton_->color(FL_LIGHT2);
 
 	midiOutChoice_ = new Fl_Choice(toolX += 68, y + 4, 128, 24);
 	midiOutChoice_->box(FL_FLAT_BOX);
@@ -100,7 +119,7 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
         if (self->onMidiOutSelect_) self->onMidiOutSelect_(self->midiOutChoice_->value());
 	}, this);
 
-	bpmSpinner_ = new Fl_Spinner(toolX += 132, y + 4, 60, 24);
+	bpmSpinner_ = new Fl_Spinner(toolX += 164, y + 4, 60, 24, "BPM");
 	bpmSpinner_->range(20, 300);
 	bpmSpinner_->value(120.0); // Default
 	bpmSpinner_->step(1.0);
@@ -111,7 +130,7 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 	}, this);
 	bpmSpinner_->tooltip("BPM");
 
-	ppqnInput_ = new Fl_Int_Input(toolX += 64, y + 4, 60, 24);
+	ppqnInput_ = new Fl_Int_Input(toolX += 106, y + 4, 60, 24, "PPQN");
 	ppqnInput_->box(FL_FLAT_BOX);
 	ppqnInput_->value("96"); // Default
 	ppqnInput_->callback([](Fl_Widget*, void* data) {
@@ -123,13 +142,7 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 	}, this);
 	ppqnInput_->tooltip("PPQN");
 
-	trackNameInput_ = new Fl_Input(toolX += 64, y + 4, 140, 24, "Track");
-	trackNameInput_->value("Track 1");
-	trackNameInput_->box(FL_FLAT_BOX);
-    trackNameInput_->callback([](Fl_Widget*, void* data) {
-        auto* self = static_cast<MainToolbar*>(data);
-        if (self->onTrackNameChanged_) self->onTrackNameChanged_(self->trackNameInput_->value());
-    }, this);
+
 
     statusLabel_ = new Fl_Box(x + w - 160, y + 4, 150, 24, "Status");
     statusLabel_->align(FL_ALIGN_RIGHT | FL_ALIGN_INSIDE);
@@ -143,6 +156,7 @@ void MainToolbar::setOnPlay(std::function<void()> cb) { onPlay_ = std::move(cb);
 void MainToolbar::setOnStop(std::function<void()> cb) { onStop_ = std::move(cb); }
 void MainToolbar::setOnRecord(std::function<void()> cb) { onRecord_ = std::move(cb); }
 void MainToolbar::setOnAddTrack(std::function<void()> cb) { onAddTrack_ = std::move(cb); }
+void MainToolbar::setOnDeleteTrack(std::function<void()> cb) { onDeleteTrack_ = std::move(cb); }
 void MainToolbar::setOnAddItem(std::function<void()> cb) { onAddItem_ = std::move(cb); }
 void MainToolbar::setOnFileSave(std::function<void()> cb) { onFileSave_ = std::move(cb); }
 void MainToolbar::setOnFileLoad(std::function<void()> cb) { onFileLoad_ = std::move(cb); }

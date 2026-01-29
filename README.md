@@ -91,6 +91,8 @@ linear-seq/
 │   ├── ui/                 # FLTK User Interface
 │   │   ├── MainWindow.cpp  # Main application window
 │   │   ├── MainWindow.h
+│   │   ├── MainToolbar.cpp # Top toolbar/transport
+│   │   ├── MainToolbar.h
 │   │   ├── TrackView.cpp   # Custom widget: The Timeline
 │   │   ├── TrackView.h
 │   │   ├── EventList.cpp   # Custom widget: The Spreadsheet

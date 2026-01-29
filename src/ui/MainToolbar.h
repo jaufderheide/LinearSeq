@@ -25,6 +25,7 @@ public:
     void setOnRecord(std::function<void()> cb);
     void setOnAddTrack(std::function<void()> cb);
     void setOnAddItem(std::function<void()> cb);
+    void setOnDeleteTrack(std::function<void()> cb);
     void setOnFileSave(std::function<void()> cb);
     void setOnFileLoad(std::function<void()> cb);
     void setOnMidiOutSelect(std::function<void(int)> cb); // passes index
@@ -55,6 +56,7 @@ private:
     Fl_Button* stopButton_;
     Fl_Button* recordButton_;
     Fl_Button* addTrackButton_;
+    Fl_Button* deleteTrackButton_;
     Fl_Button* addItemButton_;
     Fl_Choice* midiOutChoice_;
     Fl_Spinner* bpmSpinner_;
@@ -66,6 +68,7 @@ private:
     std::function<void()> onStop_;
     std::function<void()> onRecord_;
     std::function<void()> onAddTrack_;
+    std::function<void()> onDeleteTrack_;
     std::function<void()> onAddItem_;
     std::function<void()> onFileSave_;
     std::function<void()> onFileLoad_;

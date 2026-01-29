@@ -95,6 +95,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
     toolbar_->setOnStop([this] { onStop(); });
     toolbar_->setOnRecord([this] { onRecord(); });
     toolbar_->setOnAddTrack([this] { onAddTrack(); });
+    toolbar_->setOnDeleteTrack([this] { onDeleteTrack(); });
     toolbar_->setOnAddItem([this] { onAddItem(); });
     toolbar_->setOnFileSave([this] { onFileSave(); });
     toolbar_->setOnFileLoad([this] { onFileLoad(); });
@@ -187,8 +188,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
         currentTick_ = tick;
         trackView_->setPlayheadTick(currentTick_);
     });
-
-    // NEW HANDLERS
+    
     trackView_->setOnCopy([this]() {
         onCopy();
     });
@@ -196,7 +196,6 @@ MainWindow::MainWindow(int w, int h, const char* title)
     trackView_->setOnPaste([this]() {
         onPaste();
     });
-    // END NEW HANDLERS
 
 	trackView_->setSelectedTrack(0);
 	eventList_->setTrackFilter(0);
@@ -306,14 +305,35 @@ void MainWindow::onPpqnChanged(int ppqn) {
 }
 
 int MainWindow::handle(int event) {
-    if (event == FL_KEYDOWN) {
+    if (event == FL_KEYDOWN || event == FL_SHORTCUT) {
+        int key = Fl::event_key();
+        
         if (Fl::event_state() & FL_CTRL) {
-            int key = Fl::event_key();
             if (key == 'c') {
                 onCopy();
                 return 1;
             } else if (key == 'v') {
                 onPaste();
+                return 1;
+            }
+        }
+        
+        if (key == FL_Delete || key == FL_BackSpace) {
+            // Only delete if focus is within TrackView or EventList
+            // Avoids intercepting Backspace when typing in inputs (e.g. BPM)
+            Fl_Widget* focus = Fl::focus();
+            bool shouldDelete = false;
+            Fl_Widget* w = focus;
+            while (w) {
+                if (w == trackView_ || w == eventList_) {
+                   shouldDelete = true;
+                   break;
+                }
+                w = w->parent();
+            }
+
+            if (shouldDelete) {
+                onDelete();
                 return 1;
             }
         }
@@ -349,8 +369,11 @@ void MainWindow::onCopy() {
 
 void MainWindow::onPaste() {
     if (clipboardItems_.empty()) return;
+
+    // Use selected track or 0 if none
     int trackIdx = trackView_->selectedTrack();
-    if (trackIdx < 0 || trackIdx >= static_cast<int>(song_.tracks.size())) return;
+    if (trackIdx < 0) trackIdx = 0;
+    if (trackIdx >= static_cast<int>(song_.tracks.size())) return;
     
     auto& track = song_.tracks[trackIdx];
     
@@ -369,6 +392,31 @@ void MainWindow::onPaste() {
     refreshViews();
     trackView_->setSelectedTrack(trackIdx);
     trackView_->setSelectedItems(newSelection);
+}
+
+void MainWindow::onDelete() {
+    int trackIdx = trackView_->selectedTrack();
+    if (trackIdx < 0 || trackIdx >= static_cast<int>(song_.tracks.size())) return;
+
+    auto& track = song_.tracks[trackIdx];
+    std::set<int> selected = trackView_->selectedItems();
+    if (selected.empty()) return;
+    
+    // Remove in reverse order to preserve indices of earlier items
+    for (auto it = selected.rbegin(); it != selected.rend(); ++it) {
+        int idx = *it;
+        if (idx >= 0 && idx < static_cast<int>(track.items.size())) {
+            track.items.erase(track.items.begin() + idx);
+        }
+    }
+    
+    // Clear selection
+    trackView_->setSelectedItems({});
+    activeItemIndex_ = -1;
+    eventList_->setItemFilter(-1);
+    
+    sequencer_.setSong(song_);
+    refreshViews();
 }
 
 void MainWindow::onPlay() {
@@ -442,6 +490,42 @@ void MainWindow::onAddTrack() {
     eventList_->setTrackFilter(newIndex);
     eventList_->setItemFilter(-1);
     
+}
+
+void MainWindow::onDeleteTrack() {
+    int idx = trackView_->selectedTrack();
+    if (idx < 0 || idx >= static_cast<int>(song_.tracks.size())) {
+        return;
+    }
+
+    song_.tracks.erase(song_.tracks.begin() + idx);
+
+    // Determine new selection logic
+    int newSelection = -1;
+    if (!song_.tracks.empty()) {
+        if (idx < static_cast<int>(song_.tracks.size())) {
+            newSelection = idx; 
+        } else {
+            newSelection = static_cast<int>(song_.tracks.size()) - 1;
+        }
+    }
+
+    activeItemIndex_ = -1;
+    sequencer_.setSong(song_);
+    sequencer_.setActiveTrack(newSelection >= 0 ? newSelection : 0);
+    
+    // Update UI selection
+    trackView_->setSong(song_); // Update song first so size is correct
+    trackView_->setSelectedTrack(newSelection);
+    
+    refreshViews();
+    
+    // Update toolbar name
+    if (newSelection >= 0) {
+        toolbar_->setTrackName(song_.tracks[newSelection].name);
+    } else {
+        toolbar_->setTrackName("No Tracks");
+    }
 }
 
 void MainWindow::updateScrollContent() {

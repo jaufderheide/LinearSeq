@@ -70,6 +70,8 @@ private:
     
     void onCopy();
     void onPaste();
+    void onDelete();
+    void onDeleteTrack();
 };
 
 } // namespace linearseq

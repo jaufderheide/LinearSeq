@@ -155,6 +155,7 @@ int TrackRowView::handle(int event) {
     }
 
     if (event == FL_PUSH && Fl::event_button() == FL_LEFT_MOUSE) {
+        take_focus();
         int localX = Fl::event_x() - x();
         
         if (localX > HEADER_WIDTH) {
@@ -256,6 +257,9 @@ int TrackRowView::handle(int event) {
                 // Select track, deselect item
                 onItemSelectionChanged_(trackIndex_, {});
             }
+             // Ensure track selection event is fired by invoking the callback even if items are empty.
+            // Wait, onItemSelectionChanged_ updates items. The `setItemSelectionCallback` in TrackView
+            // handles track selection logic too.
             return 1;
         }
     } else if (event == FL_DRAG && isDragging_) {
