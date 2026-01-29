@@ -1,0 +1,119 @@
+classDiagram
+    class MainWindow {
+        -Fl_Scroll* trackScroll_
+        -TrackView* trackView_
+        -EventList* eventList_
+        -Fl_Button* playButton_
+        -Fl_Button* stopButton_
+        -Fl_Button* recordButton_
+        -Sequencer sequencer_
+        -AlsaDriver driver_
+        +show()
+        -onPlay()
+        -onStop()
+        -onRecord()
+    }
+    
+    class Sequencer {
+        -std::vector<PlaybackEvent> playbackQueue_
+        -Song song_
+        -Clock clock_
+        -AlsaDriver* driver_
+        +play()
+        +stop()
+        +startRecording()
+        +stopRecording()
+    }
+
+    class AlsaDriver {
+        -snd_seq_t* seq_
+        +open()
+        +close()
+        +sendNoteOn()
+        +sendNoteOff()
+    }
+
+    class EventList {
+        -Fl_Scroll* scroll_
+        -EventRowsWidget* rowsWidget_
+        -Fl_Input* editInput_
+        -std::vector<EventRow> rows_
+        +insertEvent()
+        +deleteSelectedEvent()
+    }
+
+    class EventRowsWidget {
+        -EventList* list_
+        +draw()
+        +handle()
+    }
+
+    class TrackView {
+        -std::vector<TrackRowView*> rowViews_
+        -Song song_
+        +setSong()
+        +draw()
+    }
+
+    class TrackRowView {
+        -Fl_Box* nameLabel_
+        -Fl_Int_Input* channelInput_
+        +setTrack()
+    }
+    
+    class Clock {
+        -double bpm_
+        -uint32_t ppqn_
+        +start()
+        +stop()
+    }
+
+    class Song {
+        +uint32_t ppqn
+        +double bpm
+        +std::vector<Track> tracks
+    }
+    
+    class Track {
+        +std::string name
+        +uint8_t channel
+        +std::vector<MidiItem> items
+    }
+    
+    class MidiItem {
+        +uint32_t startTick
+        +std::vector<MidiEvent> events
+    }
+    
+    class MidiEvent {
+        +uint32_t tick
+        +MidiStatus status
+        +uint8_t data1
+        +uint8_t data2
+    }
+
+    class LseqMenuButton {
+        +draw()
+    }
+
+    class SongJson {
+        <<utility>>
+        +toJson()
+        +saveToFile()
+        +loadFromFile()
+    }
+
+    MainWindow *-- Sequencer
+    MainWindow *-- AlsaDriver
+    MainWindow *-- TrackView
+    MainWindow *-- EventList
+    MainWindow *-- LseqMenuButton
+    MainWindow ..> SongJson : uses
+    Sequencer o-- AlsaDriver
+    Sequencer *-- Clock
+    Sequencer o-- Song
+    TrackView *-- TrackRowView
+    EventList *-- EventRowsWidget
+    Song "1" *-- "*" Track
+    Track "1" *-- "*" MidiItem
+    MidiItem "1" *-- "*" MidiEvent

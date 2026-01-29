@@ -1,0 +1,88 @@
+# Feature Log
+
+## 2026-01-27
+
+### App window (FLTK shell)
+- Status: Functional
+- Scope: Launches a window with Track View and Event List regions.
+- Limitations: No interactive controls yet.
+- How to verify: Run ./LinearSeq and confirm the window appears.
+
+### Event List rendering
+- Status: Partial
+- Scope: Renders MIDI event rows from an in-memory demo Song.
+- Limitations: Read-only; no in-grid editing yet.
+- How to verify: Launch the app and confirm event rows show timestamps, status, data, and duration.
+
+### Track View rendering + selection
+- Status: Partial
+- Scope: Renders track rows and item blocks from a demo Song. Clicking a track filters the Event List to that track.
+- Limitations: No drag/move/resize for items; no zoom or scroll.
+- How to verify: Launch the app, click a track row, and confirm Event List updates.
+
+### ALSA output driver (note on/off)
+- Status: Partial
+- Scope: Sequencer can emit note on/off events to ALSA if provided a Song.
+- Limitations: No song scheduling UI; no MIDI routing or clock control yet.
+- How to verify: Unit test or manual wiring required (not exposed in UI).
+
+### Transport controls + recording
+- Status: Partial
+- Scope: Play/Stop/Rec buttons drive Sequencer. Recording captures ALSA input into the active track/item.
+- Limitations: No device selection UI; recording is basic and updates view on stop. ALSA may be unavailable in WSL.
+- How to verify: Connect a MIDI device to ALSA, press Rec*, play notes, press Rec to stop, and confirm new events appear in Event List.
+
+### ALSA status + simulated take
+- Status: Partial
+- Scope: UI shows ALSA availability and provides a Sim button to add demo events when no MIDI input is present.
+- Limitations: Simulation is not real-time and does not test ALSA I/O.
+- How to verify: Click Sim and confirm new events appear in the Event List.
+
+### Item/note creation controls
+- Status: Partial
+- Scope: +Item creates a new MIDI item on the selected track. +Note adds a note to the active item.
+- Limitations: Fixed note/velocity and auto placement; no editing yet.
+- How to verify: Click +Item then +Note; confirm new item and rows appear.
+
+### Track name editing
+- Status: Partial
+- Scope: Track name is editable via the toolbar input for the selected track.
+- Limitations: No validation and no per-track label list yet.
+- How to verify: Select a track row, edit the Track input, and confirm the Track View label updates.
+
+### Add Track
+- Status: Partial
+- Scope: +Track adds a new track and selects it.
+- Limitations: No per-track MIDI routing yet.
+- How to verify: Click +Track and confirm a new track row appears.
+
+### Track/Event list scrolling
+- Status: Partial
+- Scope: Track View and Event List scroll vertically based on content.
+- Limitations: No horizontal scrolling yet.
+- How to verify: Add enough tracks/notes to exceed the view and scroll.
+
+### Song JSON save/load
+- Status: Partial
+- Scope: Save and load the in-memory Song model to a JSON file.
+- Limitations: No UI wiring yet; format may evolve.
+- How to verify: Call `SongJson::saveToFile()` / `SongJson::loadFromFile()` with a test path.
+
+### File menu (kebab)
+- Status: Partial
+- Scope: Toolbar kebab menu provides Save/Load JSON.
+- Limitations: No MIDI export yet; no recent files.
+- How to verify: Click the kebab menu and choose Save/Load JSON.
+
+### Feature: MIDI Out Selector (2026-01-28)
+- Added `AlsaDriver::listOutputPorts` and `connectOutput`.
+- Added `Fl_Choice` dropdown to Top Toolbar.
+- Wiring: Selecting an item in the dropdown calls `snd_seq_subscribe_port`.
+
+### Feature: Save/Load MIDI Device (2026-01-28)
+- Added `midiDevice` to `Song` struct and JSON serialization.
+- UI now saves the active MIDI device name and attempts to restore/connect on load.
+
+### Feature: BPM/PPQN Controls (2026-01-29)
+- Added `Fl_Spinner` for BPM and `Fl_Choice` for PPQN in top toolbar.
+- Wired to update `Song` and `Sequencer` in real-time.
