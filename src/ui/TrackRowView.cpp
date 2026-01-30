@@ -252,6 +252,17 @@ int TrackRowView::handle(int event) {
                      int pixelOffset = Fl::event_x() - (x() + HEADER_WIDTH);
                      if (pixelOffset < 0) pixelOffset = 0;
                      uint32_t tick = static_cast<uint32_t>(pixelOffset / pixelsPerTick);
+                     
+                     // Snap to measure boundary unless Shift is held
+                     bool isShift = (Fl::event_state() & FL_SHIFT) != 0;
+                     if (!isShift) {
+                         const uint32_t ppqn = (ppqn_ > 0) ? ppqn_ : DEFAULT_PPQN;
+                         const uint32_t beatsPerMeasure = 4;
+                         const uint32_t ticksPerMeasure = ppqn * beatsPerMeasure;
+                         // Round to nearest measure
+                         tick = ((tick + (ticksPerMeasure / 2)) / ticksPerMeasure) * ticksPerMeasure;
+                     }
+                     
                      if (onSetTime_) onSetTime_(tick);
                  }
             }

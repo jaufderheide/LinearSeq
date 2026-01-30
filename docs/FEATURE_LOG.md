@@ -121,3 +121,10 @@
 - Clears pending note-off events when stopping playback.
 - Ensures clean stop regardless of where playback is interrupted.
 - Critical for live performance and composition workflow.
+
+### Feature: Snap Playhead to Measure (2026-01-30)
+- Clicking in timeline now automatically snaps playhead to nearest measure boundary.
+- Uses standard rounding: clicks in first half of measure snap to start, second half snap to next measure.
+- Hold Shift while clicking for fine positioning without snapping.
+- Simplifies workflow when working with measure-aligned compositions.
+- Snap logic: `(tick + ticksPerMeasure/2) / ticksPerMeasure * ticksPerMeasure`
