@@ -34,7 +34,7 @@ Song Sequencer::song() const {
 	return song_;
 }
 
-void Sequencer::play() {
+void Sequencer::play(uint64_t startTick) {
 	if (playing_.exchange(true)) {
 		return;
 	}
@@ -43,14 +43,36 @@ void Sequencer::play() {
 		pendingOffs_.clear();
 	}
 	buildPlaybackQueue();
-	clock_.start();
+	
+	// Skip ahead to startTick in the playback queue
+	playbackIndex_ = 0;
+	for (size_t i = 0; i < playbackQueue_.size(); ++i) {
+		if (playbackQueue_[i].absTick >= startTick) {
+			playbackIndex_ = i;
+			break;
+		}
+	}
+	
+	clock_.start(startTick);
 }
 
 void Sequencer::stop() {
 	if (!playing_.exchange(false)) {
 		return;
 	}
+	// Send All Notes Off to prevent stuck notes
+	allNotesOff();
 	clock_.stop();
+}
+
+void Sequencer::allNotesOff() {
+	if (!driver_ || !driver_->isOpen()) {
+		return;
+	}
+	driver_->sendAllNotesOff();
+	// Also clear any pending note offs
+	std::lock_guard<std::mutex> lock(pendingMutex_);
+	pendingOffs_.clear();
 }
 
 bool Sequencer::isPlaying() const {

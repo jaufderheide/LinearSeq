@@ -118,8 +118,8 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	const int splitter = h / 2;
 
     // Register Font Awesome (Globally used)
-    // Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
-	Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
+    Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
+	// Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
 	
 
     // Toolbar
@@ -474,7 +474,8 @@ void MainWindow::onDelete() {
 void MainWindow::onPlay() {
 	ensureDriverOpen();
 	updateStatus();
-	sequencer_.play();
+	// Start playback from current playhead position
+	sequencer_.play(currentTick_);
     Fl::add_timeout(0.033, playTimer, this);
 }
 

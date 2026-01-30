@@ -31,11 +31,11 @@ uint32_t Clock::ppqn() const {
 	return ppqn_.load(std::memory_order_relaxed);
 }
 
-void Clock::start() {
+void Clock::start(uint64_t startTick) {
 	if (running_.exchange(true)) {
 		return;
 	}
-	tickCounter_.store(0, std::memory_order_relaxed);
+	tickCounter_.store(startTick, std::memory_order_relaxed);
 	thread_ = std::thread(&Clock::runLoop, this);
 }
 
@@ -62,7 +62,7 @@ uint64_t Clock::currentTick() const {
 
 void Clock::runLoop() {
 	using clock = std::chrono::steady_clock;
-	uint64_t tick = 0;
+	uint64_t tick = tickCounter_.load(std::memory_order_relaxed);
 	auto next = clock::now();
 
 	while (running_.load()) {

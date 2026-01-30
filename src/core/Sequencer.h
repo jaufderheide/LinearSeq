@@ -22,9 +22,10 @@ public:
 	void setSong(const Song& song);
 	Song song() const;
 
-	void play();
+	void play(uint64_t startTick = 0);
 	void stop();
 	bool isPlaying() const;
+	void allNotesOff();
 
 	void startRecording();
 	void stopRecording();

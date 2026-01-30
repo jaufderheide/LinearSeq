@@ -159,6 +159,29 @@ bool AlsaDriver::sendNoteOff(uint8_t channel, uint8_t note, uint8_t velocity) {
 	return snd_seq_event_output_direct(seq_, &ev) >= 0;
 }
 
+bool AlsaDriver::sendControlChange(uint8_t channel, uint8_t controller, uint8_t value) {
+	if (!seq_) {
+		return false;
+	}
+	snd_seq_event_t ev;
+	snd_seq_ev_clear(&ev);
+	snd_seq_ev_set_source(&ev, outPort_);
+	snd_seq_ev_set_subs(&ev);
+	snd_seq_ev_set_direct(&ev);
+	snd_seq_ev_set_controller(&ev, channel, controller, value);
+	return snd_seq_event_output_direct(seq_, &ev) >= 0;
+}
+
+void AlsaDriver::sendAllNotesOff() {
+	if (!seq_) {
+		return;
+	}
+	// Send CC 123 (All Notes Off) on all 16 MIDI channels
+	for (uint8_t channel = 0; channel < 16; ++channel) {
+		sendControlChange(channel, 123, 0);
+	}
+}
+
 bool AlsaDriver::readInputEvent(MidiEvent& event) {
 	if (!seq_) {
 		return false;

@@ -107,3 +107,17 @@
 - Prevents child widgets (Fl_Int_Input) from consuming Ctrl+V before application can process it.
 - Fixed focus issue: Added automatic focus to TrackView after creating items.
 - Result: Consistent copy/paste behavior regardless of focus state.
+
+### Feature: Playback from Playhead Position (2026-01-30)
+- Modified `Sequencer::play()` to accept starting tick parameter.
+- Updated `Clock::start()` to begin from specified tick instead of always starting at 0.
+- `MainWindow` now passes `currentTick_` to sequencer when play is pressed.
+- Playback queue skips events before startTick for efficient seeking.
+- Enables working on specific sections of a composition without restarting from beginning.
+
+### Feature: All Notes Off / MIDI Panic (2026-01-30)
+- Implemented `AlsaDriver::sendAllNotesOff()` using MIDI CC 123 on all 16 channels.
+- `Sequencer::stop()` now calls `allNotesOff()` to prevent stuck notes.
+- Clears pending note-off events when stopping playback.
+- Ensures clean stop regardless of where playback is interrupted.
+- Critical for live performance and composition workflow.

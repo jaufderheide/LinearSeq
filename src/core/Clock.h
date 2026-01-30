@@ -20,7 +20,7 @@ public:
 	void setPpqn(uint32_t ppqn);
 	uint32_t ppqn() const;
 
-	void start();
+	void start(uint64_t startTick = 0);
 	void stop();
 	bool isRunning() const;
 
