@@ -97,3 +97,13 @@
 ### Feature: Track Deletion (2026-01-29)
 - Added `Delete Track` button to Toolbar.
 - Logic removes track, updates pointers, handles last-track scenarios, and refreshes UI.
+
+### Fix: Copy/Paste Event Handling (2026-01-30)
+- Fixed broken Ctrl+V paste functionality that was inconsistent based on widget focus.
+- Implemented multi-layered event handling strategy:
+  - Global event handler for application-level shortcuts
+  - Widget-level pass-through for Ctrl shortcuts before children consume them
+  - Duplicate event filtering to handle FLTK's multiple event types per keypress
+- Prevents child widgets (Fl_Int_Input) from consuming Ctrl+V before application can process it.
+- Fixed focus issue: Added automatic focus to TrackView after creating items.
+- Result: Consistent copy/paste behavior regardless of focus state.

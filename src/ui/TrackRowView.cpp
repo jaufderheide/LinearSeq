@@ -149,7 +149,17 @@ void TrackRowView::draw() {
 }
 
 int TrackRowView::handle(int event) {
-    // 1. Give children (like input box) a chance first
+    // CRITICAL: Check for Ctrl shortcuts BEFORE giving children a chance
+    // Handle any event type except keyup (to avoid duplicates)
+    if ((Fl::event_state() & FL_CTRL) && event != FL_KEYUP) {
+        int key = Fl::event_key();
+        // These are application-level shortcuts - don't let children consume them
+        if (key == 'c' || key == 'v' || key == 'x' || key == 'z') {
+            return 0; // Let it bubble up immediately
+        }
+    }
+    
+    // Give children (like input box) a chance for other events
     if (Fl_Group::handle(event)) {
         return 1;
     }
@@ -317,6 +327,10 @@ int TrackRowView::handle(int event) {
             initialDragTicks_.clear();
             return 1;
         }
+    } else if (event == FL_SHORTCUT || event == FL_KEYDOWN || event == FL_KEYBOARD || event == FL_KEYUP) {
+        // Don't consume keyboard events - let them bubble up
+
+        return 0;
     }
     
     return Fl_Widget::handle(event);

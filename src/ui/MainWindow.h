@@ -44,6 +44,9 @@ private:
 	void updateChannelInputs();
 	static void onChannelInput(Fl_Widget* widget, void* data);
 	void refreshMidiDevices();
+	
+	static int globalEventHandler(int event);
+	static MainWindow* instanceForHandler_;
 
 	MainToolbar* toolbar_;
     
@@ -65,6 +68,9 @@ private:
     
     // Playback state
     uint32_t currentTick_ = 0;
+    
+    // Shortcut handling state (to prevent duplicate handling)
+    int lastHandledShortcutKey_ = 0;
     
     int handle(int event) override;
     

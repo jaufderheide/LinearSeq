@@ -95,7 +95,7 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 	addTrackButton_->color(FL_LIGHT2);
     deleteTrackButton_->color(FL_LIGHT2);
 
-    trackNameInput_ = new Fl_Input(toolX += 146, y + 4, 140, 24, "Track Name");
+    trackNameInput_ = new Fl_Input(toolX += 152, y + 4, 140, 24, "Track Name");
 	trackNameInput_->value("Track 1");
 	trackNameInput_->box(FL_FLAT_BOX);
     trackNameInput_->callback([](Fl_Widget*, void* data) {

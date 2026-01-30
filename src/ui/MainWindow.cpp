@@ -69,6 +69,37 @@ Song makeDemoSong() {
 
 } // namespace
 
+// Static member for global handler
+MainWindow* MainWindow::instanceForHandler_ = nullptr;
+
+// Global event handler for application-level shortcuts
+// This intercepts events BEFORE they reach widgets, ensuring consistent shortcut handling
+int MainWindow::globalEventHandler(int event) {
+	if (!instanceForHandler_) return 0;
+	
+	// Handle keyboard events (shortcuts, keydown, and keyboard events from focused widgets)
+	if (event != FL_SHORTCUT && event != FL_KEYDOWN && event != FL_KEYBOARD) return 0;
+	
+	int key = Fl::event_key();
+	
+	// Check for Ctrl key modifier
+	if (!(Fl::event_state() & FL_CTRL)) return 0;
+	
+	// Handle Ctrl+C (Copy)
+	if (key == 'c') {
+		instanceForHandler_->onCopy();
+		return 1; // Event handled
+	}
+	
+	// Handle Ctrl+V (Paste)
+	if (key == 'v') {
+		instanceForHandler_->onPaste();
+		return 1; // Event handled
+	}
+	
+	return 0; // Event not handled
+}
+
 MainWindow::MainWindow(int w, int h, const char* title)
 	: Fl_Window(w, h, title),
       toolbar_(nullptr),
@@ -87,7 +118,9 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	const int splitter = h / 2;
 
     // Register Font Awesome (Globally used)
-    Fl::set_font(FL_FREE_FONT, "FontAwesome");
+    // Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
+	Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
+	
 
     // Toolbar
     toolbar_ = new MainToolbar(0, 0, w, toolbarHeight);
@@ -188,14 +221,6 @@ MainWindow::MainWindow(int w, int h, const char* title)
         currentTick_ = tick;
         trackView_->setPlayheadTick(currentTick_);
     });
-    
-    trackView_->setOnCopy([this]() {
-        onCopy();
-    });
-
-    trackView_->setOnPaste([this]() {
-        onPaste();
-    });
 
 	trackView_->setSelectedTrack(0);
 	eventList_->setTrackFilter(0);
@@ -213,9 +238,17 @@ MainWindow::MainWindow(int w, int h, const char* title)
     
     refreshViews();
 	end();
+	
+	// Register global event handler for application-level shortcuts
+	instanceForHandler_ = this;
+	Fl::add_handler(globalEventHandler);
 }
 
-MainWindow::~MainWindow() = default;
+MainWindow::~MainWindow() {
+	// Unregister global handler
+	Fl::remove_handler(globalEventHandler);
+	instanceForHandler_ = nullptr;
+}
 
 void MainWindow::show(int argc, char** argv) {
 	Fl_Window::show(argc, argv);
@@ -305,19 +338,36 @@ void MainWindow::onPpqnChanged(int ppqn) {
 }
 
 int MainWindow::handle(int event) {
-    if (event == FL_KEYDOWN || event == FL_SHORTCUT) {
+    // Reset tracking when Ctrl is released
+    if (event == FL_KEYUP && !(Fl::event_state() & FL_CTRL)) {
+        lastHandledShortcutKey_ = 0;
+    }
+    
+    // Handle shortcuts when Ctrl is held, regardless of event type
+    // But exclude FL_KEYUP (9) to avoid duplicate handling
+    if ((Fl::event_state() & FL_CTRL) && event != FL_KEYUP) {
         int key = Fl::event_key();
         
-        if (Fl::event_state() & FL_CTRL) {
-            if (key == 'c') {
-                onCopy();
-                return 1;
-            } else if (key == 'v') {
-                onPaste();
-                return 1;
-            }
+        // Only handle each key once per press (prevent duplicate events)
+        if (key == lastHandledShortcutKey_) {
+            return 0; // Already handled this key
         }
         
+        // Copy/Paste shortcuts - handle these at window level
+        if (key == 'c') {
+            lastHandledShortcutKey_ = key;
+            onCopy();
+            return 1;
+        } else if (key == 'v') {
+            lastHandledShortcutKey_ = key;
+            onPaste();
+            return 1;
+        }
+    }
+    
+    // Delete key - handle separately (doesn't require Ctrl)
+    if ((event == FL_KEYDOWN || event == FL_KEYBOARD || event == FL_SHORTCUT) && event != FL_KEYUP) {
+        int key = Fl::event_key();
         if (key == FL_Delete || key == FL_BackSpace) {
             // Only delete if focus is within TrackView or EventList
             // Avoids intercepting Backspace when typing in inputs (e.g. BPM)
@@ -338,6 +388,8 @@ int MainWindow::handle(int event) {
             }
         }
     }
+    
+    // Let children handle other events
     return Fl_Window::handle(event);
 }
 
@@ -595,6 +647,9 @@ void MainWindow::onAddItem() {
 	activeItemIndex_ = static_cast<int>(items.size() - 1);
 	sequencer_.setSong(song_);
 	refreshViews();
+	
+	// Give focus to TrackView so Delete key works immediately
+	trackView_->take_focus();
 }
 
 void MainWindow::onTrackNameChanged(std::string name) {

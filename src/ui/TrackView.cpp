@@ -132,14 +132,6 @@ void TrackView::setSetTime(std::function<void(uint32_t)> cb) {
     onSetTime_ = std::move(cb);
 }
 
-void TrackView::setOnCopy(std::function<void()> cb) {
-    onCopy_ = std::move(cb);
-}
-
-void TrackView::setOnPaste(std::function<void()> cb) {
-    onPaste_ = std::move(cb);
-}
-
 void TrackView::setPlayheadTick(uint32_t tick) {
     if (playheadTick_ != tick) {
         playheadTick_ = tick;
@@ -242,27 +234,20 @@ void TrackView::draw() {
 }
 
 int TrackView::handle(int event) {
+    // Pass through keyboard shortcuts for any event type except keyup
+    if ((Fl::event_state() & FL_CTRL) && event != FL_KEYUP) {
+        int key = Fl::event_key();
+        if (key == 'c' || key == 'v' || key == 'x' || key == 'z') {
+            return 0;
+        }
+    }
+    
 	if (Fl_Group::handle(event)) {
 		return 1;
 	}
     
-    if (event == FL_SHORTCUT) {
-        if (Fl::event_state() & FL_CTRL) {
-            int key = Fl::event_key();
-            // printf("TrackView Shortcut: %c 0x%x\n", key, key);
-            if (key == 'c') {
-                if (onCopy_) {
-                    onCopy_();
-                    return 1;
-                }
-            } else if (key == 'v') {
-                if (onPaste_) {
-                    onPaste_();
-                    return 1;
-                }
-            }
-        }
-    }
+    // Note: Copy/Paste shortcuts are now handled at MainWindow level for consistency
+    // No need to handle FL_SHORTCUT here
     
     // Fallback for clicks outside rows (if any)
     if (event == FL_PUSH) {
