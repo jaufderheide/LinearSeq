@@ -288,9 +288,13 @@ void Sequencer::onTick(uint64_t tick) {
 					driver_->sendNoteOff(event.channel, event.data1, event.data2);
 					break;
 				case MidiStatus::ControlChange:
+					driver_->sendControlChange(event.channel, event.data1, event.data2);
+					break;
 				case MidiStatus::ProgramChange:
+					driver_->sendProgramChange(event.channel, event.data1);
+					break;
 				case MidiStatus::PitchBend:
-					// TODO: Implement other messages in AlsaDriver
+					// TODO: Implement pitch bend in AlsaDriver
 					break;
 				default:
 					break;

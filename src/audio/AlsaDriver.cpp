@@ -172,6 +172,19 @@ bool AlsaDriver::sendControlChange(uint8_t channel, uint8_t controller, uint8_t 
 	return snd_seq_event_output_direct(seq_, &ev) >= 0;
 }
 
+bool AlsaDriver::sendProgramChange(uint8_t channel, uint8_t program) {
+	if (!seq_) {
+		return false;
+	}
+	snd_seq_event_t ev;
+	snd_seq_ev_clear(&ev);
+	snd_seq_ev_set_source(&ev, outPort_);
+	snd_seq_ev_set_subs(&ev);
+	snd_seq_ev_set_direct(&ev);
+	snd_seq_ev_set_pgmchange(&ev, channel, program);
+	return snd_seq_event_output_direct(seq_, &ev) >= 0;
+}
+
 void AlsaDriver::sendAllNotesOff() {
 	if (!seq_) {
 		return;

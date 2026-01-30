@@ -476,6 +476,39 @@ int EventList::handle(int event) {
          // Type-through support
         const char* text = Fl::event_text();
         if (text && text[0]) {
+             // Event Type column (1) - cycle through types with key presses
+             if (cursorCol_ == 1 && !rows_.empty() && cursorRow_ >= 0 && cursorRow_ < static_cast<int>(rows_.size())) {
+                 char c = std::tolower(text[0]);
+                 MidiEvent* evt = rows_[cursorRow_].event;
+                 
+                 if (c == 'n') {
+                     evt->status = MidiStatus::NoteOn;
+                     // Set reasonable defaults for notes
+                     if (evt->data1 == 0) evt->data1 = 60; // Middle C
+                     if (evt->data2 == 0) evt->data2 = 100; // Velocity
+                     if (evt->duration == 0) evt->duration = song_.ppqn; // 1 beat
+                 } else if (c == 'c') {
+                     evt->status = MidiStatus::ControlChange;
+                     // Set reasonable defaults for CC
+                     evt->data1 = (evt->data1 > 127) ? 7 : evt->data1; // Volume if unset
+                     evt->data2 = (evt->data2 > 127) ? 127 : evt->data2;
+                     evt->duration = 0; // CC doesn't use duration
+                 } else if (c == 'p') {
+                     evt->status = MidiStatus::ProgramChange;
+                     // Set reasonable defaults for PC
+                     evt->data1 = (evt->data1 > 127) ? 0 : evt->data1; // Piano
+                     evt->data2 = 0; // PC only uses data1
+                     evt->duration = 0; // PC doesn't use duration
+                 }
+                 
+                 if (onSongChanged_) {
+                     onSongChanged_(song_);
+                 }
+                 redraw();
+                 return 1;
+             }
+             
+             // Other columns - start edit
              if (cursorCol_ == 0 || (cursorCol_ >= 2 && cursorCol_ <= 4)) {
                  if (std::isdigit(text[0]) || std::isalpha(text[0])) {
                     startEdit(text);

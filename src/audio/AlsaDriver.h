@@ -29,6 +29,7 @@ public:
 	bool sendNoteOn(uint8_t channel, uint8_t note, uint8_t velocity);
 	bool sendNoteOff(uint8_t channel, uint8_t note, uint8_t velocity);
 	bool sendControlChange(uint8_t channel, uint8_t controller, uint8_t value);
+	bool sendProgramChange(uint8_t channel, uint8_t program);
 	void sendAllNotesOff();
 	bool readInputEvent(MidiEvent& event);
 

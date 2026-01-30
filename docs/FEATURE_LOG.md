@@ -128,3 +128,13 @@
 - Hold Shift while clicking for fine positioning without snapping.
 - Simplifies workflow when working with measure-aligned compositions.
 - Snap logic: `(tick + ticksPerMeasure/2) / ticksPerMeasure * ticksPerMeasure`
+
+### Feature: Control Change and Program Change Support (2026-01-30)
+- Implemented full MIDI Control Change (CC) and Program Change (PC) support.
+- Added `AlsaDriver::sendProgramChange()` for patch/instrument selection.
+- `AlsaDriver::sendControlChange()` now used for both CC events and All Notes Off.
+- Sequencer playback queue now processes CC and PC events alongside notes.
+- EventList allows changing event type: press 'n' for Note On, 'c' for CC, 'p' for PC.
+- Event type changes automatically set reasonable defaults (e.g., PC clears data2).
+- Enables setting up synth patches and controlling parameters via MIDI.
+- Essential for consistent playback experience across sessions.
