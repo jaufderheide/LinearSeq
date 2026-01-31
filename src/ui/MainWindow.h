@@ -24,6 +24,7 @@ public:
 private:
 	void onPlay();
 	void onStop();
+	void onRewind();
 	void onRecord();
 	void onAddTrack();
 	void onAddItem();

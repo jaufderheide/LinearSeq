@@ -46,6 +46,15 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
         if (self->onPlay_) self->onPlay_();
     }, this);
 
+	rewindButton_ = new Fl_Button(toolX += 30, y + 4, 24, 24, "\uf04a");
+    rewindButton_->labelfont(FL_FREE_FONT);
+    rewindButton_->labelsize(14);
+    rewindButton_->tooltip("Rewind");
+    rewindButton_->callback([](Fl_Widget*, void* data) {
+        auto* self = static_cast<MainToolbar*>(data);
+        if (self->onRewind_) self->onRewind_();
+    }, this);
+
 	stopButton_ = new Fl_Button(toolX += 30, y + 4, 24, 24, "\uf04d");
     stopButton_->labelfont(FL_FREE_FONT);
     stopButton_->labelsize(14);
@@ -84,12 +93,14 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 
 
 	playButton_->box(FL_FLAT_BOX);
+	rewindButton_->box(FL_FLAT_BOX);
 	stopButton_->box(FL_FLAT_BOX);
 	recordButton_->box(FL_FLAT_BOX);
 	addTrackButton_->box(FL_FLAT_BOX);
     deleteTrackButton_->box(FL_FLAT_BOX);
 
 	playButton_->color(FL_LIGHT2);
+	rewindButton_->color(FL_LIGHT2);
 	stopButton_->color(FL_LIGHT2);
 	recordButton_->color(FL_LIGHT2);
 	addTrackButton_->color(FL_LIGHT2);
@@ -154,6 +165,7 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 
 void MainToolbar::setOnPlay(std::function<void()> cb) { onPlay_ = std::move(cb); }
 void MainToolbar::setOnStop(std::function<void()> cb) { onStop_ = std::move(cb); }
+void MainToolbar::setOnRewind(std::function<void()> cb) { onRewind_ = std::move(cb); }
 void MainToolbar::setOnRecord(std::function<void()> cb) { onRecord_ = std::move(cb); }
 void MainToolbar::setOnAddTrack(std::function<void()> cb) { onAddTrack_ = std::move(cb); }
 void MainToolbar::setOnDeleteTrack(std::function<void()> cb) { onDeleteTrack_ = std::move(cb); }

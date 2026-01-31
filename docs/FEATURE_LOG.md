@@ -145,3 +145,12 @@
 - Sends All Notes Off for clean shutdown.
 - Prevents infinite playback loop on empty timeline sections.
 - Implemented in `Sequencer::onTick()` - checks when `playbackIndex_ >= playbackQueue_.size()`.
+- Fixed deadlock issue by using `stopRequested_` flag checked on UI thread.
+
+### Feature: Rewind Button (2026-01-30)
+- Added Rewind button to toolbar between Play and Stop buttons.
+- Uses Font Awesome backward icon (\\uf04a).
+- Resets playhead to time 0:1:0 (start of sequence).
+- Automatically scrolls timeline view back to show the beginning.
+- Enables quick return to start without manual scrolling.
+- Simple workflow for iterating on compositions.

@@ -22,6 +22,7 @@ public:
     // Callbacks
     void setOnPlay(std::function<void()> cb);
     void setOnStop(std::function<void()> cb);
+    void setOnRewind(std::function<void()> cb);
     void setOnRecord(std::function<void()> cb);
     void setOnAddTrack(std::function<void()> cb);
     void setOnAddItem(std::function<void()> cb);
@@ -53,6 +54,7 @@ public:
 private:
     LseqMenuButton* fileMenuButton_;
     Fl_Button* playButton_;
+    Fl_Button* rewindButton_;
     Fl_Button* stopButton_;
     Fl_Button* recordButton_;
     Fl_Button* addTrackButton_;
@@ -66,6 +68,7 @@ private:
 
     std::function<void()> onPlay_;
     std::function<void()> onStop_;
+    std::function<void()> onRewind_;
     std::function<void()> onRecord_;
     std::function<void()> onAddTrack_;
     std::function<void()> onDeleteTrack_;

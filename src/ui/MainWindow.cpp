@@ -126,6 +126,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
     toolbar_ = new MainToolbar(0, 0, w, toolbarHeight);
     toolbar_->setOnPlay([this] { onPlay(); });
     toolbar_->setOnStop([this] { onStop(); });
+    toolbar_->setOnRewind([this] { onRewind(); });
     toolbar_->setOnRecord([this] { onRecord(); });
     toolbar_->setOnAddTrack([this] { onAddTrack(); });
     toolbar_->setOnDeleteTrack([this] { onDeleteTrack(); });
@@ -486,6 +487,17 @@ void MainWindow::onStop() {
 	toolbar_->setRecording(false);
 	updateStatus();
 	refreshViews();
+}
+
+void MainWindow::onRewind() {
+	// Reset playhead to time 0
+	currentTick_ = 0;
+	trackView_->setPlayheadTick(0);
+	// Scroll timeline back to show time 0
+	if (trackScroll_) {
+		trackScroll_->scroll_to(0, trackScroll_->yposition());
+	}
+	redraw();
 }
 
 void MainWindow::playTimer(void* data) {
