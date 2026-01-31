@@ -169,3 +169,12 @@
 - Smooth following during playback without manual scrolling.
 - Implemented in `MainWindow::playTimer()` with viewport boundary detection.
 - Enables comfortable playback of long sequences without losing sight of playhead.
+
+### Feature: Status Bar (2026-01-31)
+- Added dedicated status bar at bottom of window (24px height).
+- **Left side**: Current playhead position in M:B:T (Measure:Beat:Tick) format.
+- **Right side**: ALSA connection status with color coding (green=ready, red=unavailable).
+- Updates in real-time during playback (33ms refresh rate).
+- Removed status display from toolbar to free up space.
+- Dark background (FL_DARK1) with white text for better contrast.
+- Connection status shows device name when connected to specific MIDI port.

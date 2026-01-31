@@ -38,7 +38,6 @@ public:
     void setBpm(double bpm);
     void setPpqn(int ppqn);
     void setTrackName(const std::string& name);
-    void setStatus(const std::string& status);
     void setRecording(bool recording);
     void setPlaying(bool playing);
     
@@ -65,7 +64,6 @@ private:
     Fl_Spinner* bpmSpinner_;
     Fl_Int_Input* ppqnInput_;
     Fl_Input* trackNameInput_;
-    Fl_Box* statusLabel_;
 
     std::function<void()> onPlay_;
     std::function<void()> onStop_;

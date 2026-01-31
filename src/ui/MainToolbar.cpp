@@ -153,13 +153,6 @@ MainToolbar::MainToolbar(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
 	}, this);
 	ppqnInput_->tooltip("PPQN");
 
-
-
-    statusLabel_ = new Fl_Box(x + w - 160, y + 4, 150, 24, "Status");
-    statusLabel_->align(FL_ALIGN_RIGHT | FL_ALIGN_INSIDE);
-    statusLabel_->box(FL_FLAT_BOX); 
-    statusLabel_->labelsize(12);
-    
     end();
 }
 
@@ -180,7 +173,6 @@ void MainToolbar::setOnTrackNameChanged(std::function<void(std::string)> cb) { o
 void MainToolbar::setBpm(double bpm) { bpmSpinner_->value(bpm); }
 void MainToolbar::setPpqn(int ppqn) { ppqnInput_->value(std::to_string(ppqn).c_str()); }
 void MainToolbar::setTrackName(const std::string& name) { trackNameInput_->value(name.c_str()); }
-void MainToolbar::setStatus(const std::string& status) { statusLabel_->copy_label(status.c_str()); }
 
 void MainToolbar::setRecording(bool recording) {
     if (recording) {

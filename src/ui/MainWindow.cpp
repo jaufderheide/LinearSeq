@@ -115,6 +115,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	icon(appIcon);
 
 	const int toolbarHeight = 32;
+	const int statusBarHeight = 24;
 	const int splitter = h / 2;
 
     // Register Font Awesome (Globally used)
@@ -147,7 +148,22 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	trackScroll_->end();
 
     // Event List is now self-contained with its own scroll
-	eventList_ = new EventList(0, splitter, w, h - splitter);
+	eventList_ = new EventList(0, splitter, w, h - splitter - statusBarHeight);
+
+	// Status Bar at bottom
+	statusBar_ = new Fl_Box(0, h - statusBarHeight, w, statusBarHeight);
+	statusBar_->box(FL_FLAT_BOX);
+	statusBar_->color(FL_DARK1);
+
+	tickDisplay_ = new Fl_Box(8, h - statusBarHeight + 2, 150, statusBarHeight - 4, "0:1:0");
+	tickDisplay_->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+	tickDisplay_->labelcolor(FL_WHITE);
+	tickDisplay_->labelsize(12);
+
+	connectionStatus_ = new Fl_Box(w - 158, h - statusBarHeight + 2, 150, statusBarHeight - 4, "ALSA: unavailable");
+	connectionStatus_->align(FL_ALIGN_RIGHT | FL_ALIGN_INSIDE);
+	connectionStatus_->labelcolor(FL_WHITE);
+	connectionStatus_->labelsize(12);
   
 	song_ = makeDemoSong();
 	sequencer_.setSong(song_);
@@ -296,16 +312,22 @@ void MainWindow::onMidiOutSelect(int idx) {
 	if (idx - 1 < static_cast<int>(availablePorts_.size())) {
 		const auto& port = availablePorts_[idx - 1];
 		driver_.connectOutput(port.client, port.port);
-		toolbar_->setStatus("Connected: " + port.name);
+		// Update status bar
+		connectionStatus_->copy_label(("Connected: " + port.name).c_str());
+		connectionStatus_->labelcolor(fl_rgb_color(0, 200, 0));
+		connectionStatus_->redraw();
 	}
 }
 
 void MainWindow::updateStatus() {
 	if (driver_.isOpen()) {
-		toolbar_->setStatus("ALSA: ready");
+		connectionStatus_->copy_label("ALSA: ready");
+		connectionStatus_->labelcolor(fl_rgb_color(0, 200, 0)); // Green for connected
 	} else {
-		toolbar_->setStatus("ALSA: unavailable");
+		connectionStatus_->copy_label("ALSA: unavailable");
+		connectionStatus_->labelcolor(FL_RED); // Red for disconnected
 	}
+	connectionStatus_->redraw();
 }
 
 void MainWindow::refreshViews() {
@@ -514,6 +536,20 @@ void MainWindow::playTimer(void* data) {
     
     mw->currentTick_ = static_cast<uint32_t>(mw->sequencer_.currentTick());
     mw->trackView_->setPlayheadTick(mw->currentTick_);
+    
+    // Update tick display in status bar (M:B:T format)
+    const uint32_t ppqn = mw->song_.ppqn > 0 ? mw->song_.ppqn : DEFAULT_PPQN;
+    const uint32_t beatsPerMeasure = 4;
+    const uint64_t ticksPerMeasure = static_cast<uint64_t>(ppqn) * beatsPerMeasure;
+    const uint64_t measure = mw->currentTick_ / ticksPerMeasure + 1;
+    const uint64_t beat = (mw->currentTick_ / ppqn) % beatsPerMeasure + 1;
+    const uint64_t tick = mw->currentTick_ % ppqn;
+    char tickBuf[32];
+    std::snprintf(tickBuf, sizeof(tickBuf), "%llu:%llu:%03llu", 
+        static_cast<unsigned long long>(measure),
+        static_cast<unsigned long long>(beat),
+        static_cast<unsigned long long>(tick));
+    mw->tickDisplay_->copy_label(tickBuf);
     
     // Auto-scroll when playhead moves past visible area
     if (mw->trackScroll_) {
@@ -772,9 +808,12 @@ void MainWindow::onFileLoad() {
 			if (availablePorts_[i].name == song_.midiDevice) {
 				if (toolbar_) {
                     toolbar_->setMidiPortSelection(static_cast<int>(i) + 1);
-                    toolbar_->setStatus("Connected: " + song_.midiDevice);
                 }
 				driver_.connectOutput(availablePorts_[i].client, availablePorts_[i].port);
+				// Update status bar
+				connectionStatus_->copy_label(("Connected: " + song_.midiDevice).c_str());
+				connectionStatus_->labelcolor(fl_rgb_color(0, 200, 0));
+				connectionStatus_->redraw();
 				break;
 			}
 		}

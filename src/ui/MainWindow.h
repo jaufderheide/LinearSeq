@@ -1,5 +1,6 @@
 #pragma once
 
+#include <FL/Fl_Box.H>
 #include <FL/Fl_Int_Input.H>
 #include <FL/Fl_Scroll.H>
 #include <FL/Fl_Window.H>
@@ -50,6 +51,9 @@ private:
 	static MainWindow* instanceForHandler_;
 
 	MainToolbar* toolbar_;
+    Fl_Box* statusBar_;
+    Fl_Box* tickDisplay_;
+    Fl_Box* connectionStatus_;
     
 	Fl_Scroll* trackScroll_;
 	TrackView* trackView_;
