@@ -161,3 +161,11 @@
 - Automatically clears when stopped (manual stop or auto-stop at end).
 - Provides clear visual feedback of playback status.
 - Implemented in `MainToolbar::setPlaying()` with color change to `fl_rgb_color(0, 150, 0)`.
+
+### Feature: Auto-Scroll During Playback (2026-01-31)
+- Timeline automatically scrolls when playhead moves past visible area.
+- Scrolls to show current measure at the left edge of the viewport.
+- Calculation based on measure boundaries (100 pixels per measure).
+- Smooth following during playback without manual scrolling.
+- Implemented in `MainWindow::playTimer()` with viewport boundary detection.
+- Enables comfortable playback of long sequences without losing sight of playhead.

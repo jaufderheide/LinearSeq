@@ -514,6 +514,34 @@ void MainWindow::playTimer(void* data) {
     
     mw->currentTick_ = static_cast<uint32_t>(mw->sequencer_.currentTick());
     mw->trackView_->setPlayheadTick(mw->currentTick_);
+    
+    // Auto-scroll when playhead moves past visible area
+    if (mw->trackScroll_) {
+        const uint32_t ppqn = mw->song_.ppqn > 0 ? mw->song_.ppqn : DEFAULT_PPQN;
+        const uint32_t beatsPerMeasure = 4;
+        const uint64_t ticksPerMeasure = static_cast<uint64_t>(ppqn) * beatsPerMeasure;
+        const int measureWidth = 100; // Must match TrackRowView::getPixelsPerTick()
+        const double pixelsPerTick = static_cast<double>(measureWidth) / static_cast<double>(ticksPerMeasure);
+        const int headerWidth = 110; // Must match TrackRowView::HEADER_WIDTH
+        
+        // Calculate playhead position in pixels
+        const int playheadX = static_cast<int>(mw->currentTick_ * pixelsPerTick) + headerWidth;
+        
+        // Get current scroll position and viewport width
+        const int scrollX = mw->trackScroll_->xposition();
+        const int viewportWidth = mw->trackScroll_->w();
+        const int viewportRight = scrollX + viewportWidth;
+        
+        // If playhead has moved past the right edge, scroll to next measure
+        if (playheadX >= viewportRight) {
+            // Calculate which measure the playhead is in
+            const uint64_t currentMeasure = mw->currentTick_ / ticksPerMeasure;
+            // Scroll to show this measure at the left edge
+            const int newScrollX = static_cast<int>(currentMeasure * measureWidth);
+            mw->trackScroll_->scroll_to(newScrollX, mw->trackScroll_->yposition());
+        }
+    }
+    
     Fl::repeat_timeout(0.033, playTimer, data);
 }
 
