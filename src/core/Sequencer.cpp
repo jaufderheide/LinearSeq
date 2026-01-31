@@ -302,6 +302,20 @@ void Sequencer::onTick(uint64_t tick) {
 		}
 		playbackIndex_++;
 	}
+	
+	// 3. Check if playback has finished
+	// Stop if we've processed all events and there are no pending note-offs
+	if (playbackIndex_ >= playbackQueue_.size()) {
+		bool hasPendingOffs = false;
+		{
+			std::lock_guard<std::mutex> lock(pendingMutex_);
+			hasPendingOffs = !pendingOffs_.empty();
+		}
+		
+		if (!hasPendingOffs) {
+			stop();
+		}
+	}
 }
 
 } // namespace linearseq

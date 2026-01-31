@@ -138,3 +138,10 @@
 - Event type changes automatically set reasonable defaults (e.g., PC clears data2).
 - Enables setting up synth patches and controlling parameters via MIDI.
 - Essential for consistent playback experience across sessions.
+
+### Feature: Auto-Stop at End of Sequence (2026-01-30)
+- Playback now automatically stops when all events have been played.
+- Waits for pending note-off events to complete before stopping.
+- Sends All Notes Off for clean shutdown.
+- Prevents infinite playback loop on empty timeline sections.
+- Implemented in `Sequencer::onTick()` - checks when `playbackIndex_ >= playbackQueue_.size()`.
