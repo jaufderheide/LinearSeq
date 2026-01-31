@@ -8,6 +8,7 @@ namespace linearseq {
 
 Sequencer::Sequencer()
 	: playing_(false), 
+	  stopRequested_(false),
 	  playbackIndex_(0),
 	  recording_(false), 
 	  activeTrack_(0), 
@@ -60,9 +61,14 @@ void Sequencer::stop() {
 	if (!playing_.exchange(false)) {
 		return;
 	}
+	stopRequested_.store(false); // Clear the flag
 	// Send All Notes Off to prevent stuck notes
 	allNotesOff();
 	clock_.stop();
+}
+
+bool Sequencer::shouldStop() const {
+	return stopRequested_.load();
 }
 
 void Sequencer::allNotesOff() {
@@ -304,7 +310,8 @@ void Sequencer::onTick(uint64_t tick) {
 	}
 	
 	// 3. Check if playback has finished
-	// Stop if we've processed all events and there are no pending note-offs
+	// Request stop if we've processed all events and there are no pending note-offs
+	// Don't call stop() directly to avoid deadlock - let MainWindow check this flag
 	if (playbackIndex_ >= playbackQueue_.size()) {
 		bool hasPendingOffs = false;
 		{
@@ -313,7 +320,7 @@ void Sequencer::onTick(uint64_t tick) {
 		}
 		
 		if (!hasPendingOffs) {
-			stop();
+			stopRequested_.store(true);
 		}
 	}
 }

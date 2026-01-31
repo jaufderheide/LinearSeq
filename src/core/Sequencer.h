@@ -25,6 +25,7 @@ public:
 	void play(uint64_t startTick = 0);
 	void stop();
 	bool isPlaying() const;
+	bool shouldStop() const;
 	void allNotesOff();
 
 	void startRecording();
@@ -72,6 +73,7 @@ private:
 
 	// Playback State
 	std::atomic<bool> playing_;
+	std::atomic<bool> stopRequested_;
 	std::vector<PlaybackEvent> playbackQueue_;
 	size_t playbackIndex_;
 	std::vector<PendingNoteOff> pendingOffs_;

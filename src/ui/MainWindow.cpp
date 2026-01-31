@@ -492,6 +492,12 @@ void MainWindow::playTimer(void* data) {
     MainWindow* mw = static_cast<MainWindow*>(data);
     if (!mw->sequencer_.isPlaying()) return;
     
+    // Check if sequencer requested auto-stop (end of sequence)
+    if (mw->sequencer_.shouldStop()) {
+        mw->onStop();
+        return;
+    }
+    
     mw->currentTick_ = static_cast<uint32_t>(mw->sequencer_.currentTick());
     mw->trackView_->setPlayheadTick(mw->currentTick_);
     Fl::repeat_timeout(0.033, playTimer, data);
