@@ -477,6 +477,7 @@ void MainWindow::onPlay() {
 	updateStatus();
 	// Start playback from current playhead position
 	sequencer_.play(currentTick_);
+	toolbar_->setPlaying(true);
     Fl::add_timeout(0.033, playTimer, this);
 }
 
@@ -485,6 +486,7 @@ void MainWindow::onStop() {
 	sequencer_.stopRecording();
 	sequencer_.stop();
 	toolbar_->setRecording(false);
+	toolbar_->setPlaying(false);
 	updateStatus();
 	refreshViews();
 }

@@ -197,6 +197,15 @@ void MainToolbar::setRecording(bool recording) {
     recordButton_->redraw();
 }
 
+void MainToolbar::setPlaying(bool playing) {
+    if (playing) {
+        playButton_->color(fl_rgb_color(0, 150, 0)); // Green background when playing
+    } else {
+        playButton_->color(FL_LIGHT2); // Default color
+    }
+    playButton_->redraw();
+}
+
 void MainToolbar::clearMidiPorts() {
     midiOutChoice_->clear();
 }

@@ -40,6 +40,7 @@ public:
     void setTrackName(const std::string& name);
     void setStatus(const std::string& status);
     void setRecording(bool recording);
+    void setPlaying(bool playing);
     
     void clearMidiPorts();
     void addMidiPort(const std::string& name);

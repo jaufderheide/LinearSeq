@@ -154,3 +154,10 @@
 - Automatically scrolls timeline view back to show the beginning.
 - Enables quick return to start without manual scrolling.
 - Simple workflow for iterating on compositions.
+
+### Feature: Transport Button Visual Sync (2026-01-31)
+- Play button now shows visual "pressed" state during playback.
+- Background changes to green when sequence is playing.
+- Automatically clears when stopped (manual stop or auto-stop at end).
+- Provides clear visual feedback of playback status.
+- Implemented in `MainToolbar::setPlaying()` with color change to `fl_rgb_color(0, 150, 0)`.
