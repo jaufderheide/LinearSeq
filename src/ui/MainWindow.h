@@ -30,6 +30,7 @@ private:
 	void onAddTrack();
 	void onAddItem();
 	void onTrackNameChanged(std::string name);
+	void onTrackPitchShift(); // Shift pitch of selected track by semitones
 	void onFileSave();
 	void onFileLoad();
 	void onMidiOutSelect(int index);

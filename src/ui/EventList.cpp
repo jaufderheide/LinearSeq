@@ -204,6 +204,15 @@ EventList::EventList(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
         static_cast<EventList*>(v)->deleteSelectedEvent();
     }, this);
 
+    scaleButton_ = new Fl_Button(0, 0, btnW, btnH, "Scale");
+    scaleButton_->labelsize(10);
+    scaleButton_->box(FL_FLAT_BOX);
+    scaleButton_->color(FL_LIGHT2);
+    scaleButton_->tooltip("Scale Velocity (Linear ramp from first to last selected)");
+    scaleButton_->callback([](Fl_Widget* w, void* v) {
+        static_cast<EventList*>(v)->scaleVelocity();
+    }, this);
+
     // Scroll
     scroll_ = new Fl_Scroll(x, y + headerHeight, w, h - headerHeight);
     scroll_->type(Fl_Scroll::VERTICAL); // Or BOTH if columns get too wide
@@ -256,8 +265,9 @@ void EventList::resize(int X, int Y, int W, int H) {
     int btnY = Y + (headerHeight - btnH) / 2;
     int right = X + W;
     
-    if (deleteButton_) deleteButton_->resize(right - btnW - 2, btnY, btnW, btnH);
-    if (insertButton_) insertButton_->resize(right - 2*btnW - 4, btnY, btnW, btnH);
+    if (scaleButton_) scaleButton_->resize(right - btnW - 2, btnY, btnW, btnH);
+    if (deleteButton_) deleteButton_->resize(right - 2*btnW - 4, btnY, btnW, btnH);
+    if (insertButton_) insertButton_->resize(right - 3*btnW - 6, btnY, btnW, btnH);
     
     // Ensure content widget width tracks the scroll view width
     if (scroll_ && rowsWidget_) {
@@ -1302,6 +1312,51 @@ uint8_t EventList::getDefaultPitch() const {
     
     // Default to middle C if no notes found
     return 60;
+}
+
+void EventList::scaleVelocity() {
+    // Need at least 2 selected events to create a scale
+    if (selectedRows_.size() < 2 || itemFilter_ < 0) return;
+    
+    // Get sorted list of selected row indices
+    std::vector<int> sortedRows(selectedRows_.begin(), selectedRows_.end());
+    std::sort(sortedRows.begin(), sortedRows.end());
+    
+    // Get first and last event velocities
+    if (sortedRows.front() >= static_cast<int>(rows_.size()) || 
+        sortedRows.back() >= static_cast<int>(rows_.size())) return;
+    
+    const auto& firstRow = rows_[sortedRows.front()];
+    const auto& lastRow = rows_[sortedRows.back()];
+    
+    if (!firstRow.event || !lastRow.event) return;
+    if (firstRow.event->status != MidiStatus::NoteOn || 
+        lastRow.event->status != MidiStatus::NoteOn) return;
+    
+    int startVelocity = firstRow.event->data2;
+    int endVelocity = lastRow.event->data2;
+    int steps = static_cast<int>(sortedRows.size()) - 1;
+    
+    // Apply linear interpolation to all selected events
+    for (size_t i = 0; i < sortedRows.size(); ++i) {
+        int rowIdx = sortedRows[i];
+        if (rowIdx < 0 || rowIdx >= static_cast<int>(rows_.size())) continue;
+        
+        auto& row = rows_[rowIdx];
+        if (!row.event || row.event->status != MidiStatus::NoteOn) continue;
+        
+        // Calculate interpolated velocity
+        float t = (steps > 0) ? (static_cast<float>(i) / steps) : 0.0f;
+        int newVelocity = static_cast<int>(startVelocity + t * (endVelocity - startVelocity));
+        newVelocity = std::max(1, std::min(127, newVelocity)); // Clamp to valid MIDI range (1-127)
+        
+        row.event->data2 = static_cast<uint8_t>(newVelocity);
+    }
+    
+    // Notify and redraw
+    if (onSongChanged_) onSongChanged_(song_);
+    rebuildRows();
+    redraw();
 }
 
 } // namespace linearseq

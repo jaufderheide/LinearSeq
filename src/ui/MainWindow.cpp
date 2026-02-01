@@ -4,6 +4,7 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/fl_draw.H>
+#include <FL/fl_ask.H>
 
 #include <algorithm>
 #include <cstdint>
@@ -95,6 +96,12 @@ int MainWindow::globalEventHandler(int event) {
 	// Handle Ctrl+V (Paste)
 	if (key == 'v') {
 		instanceForHandler_->onPaste();
+		return 1; // Event handled
+	}
+	
+	// Handle Ctrl+Shift+P (Track Pitch Shift)
+	if (key == 'p' && (Fl::event_state() & FL_SHIFT)) {
+		instanceForHandler_->onTrackPitchShift();
 		return 1; // Event handled
 	}
 	
@@ -930,7 +937,35 @@ void MainWindow::setModified(bool modified) {
 	modified_ = modified;
 	updateWindowTitle();
 }
-
+void MainWindow::onTrackPitchShift() {
+	int selectedTrack = trackView_->selectedTrack();
+	if (selectedTrack < 0 || selectedTrack >= static_cast<int>(song_.tracks.size())) {
+		return; // No track selected
+	}
+	
+	// Prompt user for semitone shift
+	const char* input = fl_input("Shift pitch by semitones (e.g., +2, -5):", "0");
+	if (!input) return; // User cancelled
+	
+	int semitones = std::atoi(input);
+	if (semitones == 0) return; // No change requested
+	
+	// Apply pitch shift to all NoteOn events in the selected track
+	auto& track = song_.tracks[selectedTrack];
+	for (auto& item : track.items) {
+		for (auto& event : item.events) {
+			if (event.status == MidiStatus::NoteOn) {
+				int newPitch = static_cast<int>(event.data1) + semitones;
+				// Clamp to valid MIDI note range (0-127)
+				newPitch = std::max(0, std::min(127, newPitch));
+				event.data1 = static_cast<uint8_t>(newPitch);
+			}
+		}
+	}
+	
+	setModified(true);
+	refreshViews();
+}
 void MainWindow::onClose() {
 	if (modified_) {
 		int choice = fl_choice(

@@ -41,6 +41,7 @@ public:
     void deleteSelectedEvent();
     void copySelected();
     void pasteEvents();
+    void scaleVelocity(); // Scale velocity linearly from first to last selected event
     bool hasClipboardData() const { return !clipboardEvents_.empty(); }
 
 	void draw() override;
@@ -83,6 +84,7 @@ private:
 	Fl_Input* editInput_ = nullptr;
     Fl_Menu_Button* insertButton_ = nullptr;
     Fl_Button* deleteButton_ = nullptr;
+    Fl_Button* scaleButton_ = nullptr;
 
 	std::function<void(const Song&)> onSongChanged_;
     
