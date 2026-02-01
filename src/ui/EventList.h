@@ -5,6 +5,7 @@
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Scroll.H>
 #include <vector>
+#include <set>
 #include <functional>
 
 #include "core/Types.h"
@@ -36,6 +37,9 @@ public:
     // Editing Commands
     void insertEvent();
     void deleteSelectedEvent();
+    void copySelected();
+    void pasteEvents();
+    bool hasClipboardData() const { return !clipboardEvents_.empty(); }
 
 	void draw() override;
 	int handle(int event) override;
@@ -59,6 +63,8 @@ private:
 	std::vector<EventRow> rows_;
 	int cursorRow_ = 0;
 	int cursorCol_ = 0;
+	std::set<int> selectedRows_; // Multi-select support
+	std::vector<MidiEvent> clipboardEvents_; // Copy/paste clipboard
     
     // UI Structure:
     // EventList (Fl_Group)

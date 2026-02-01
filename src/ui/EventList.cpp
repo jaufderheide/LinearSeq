@@ -11,7 +11,8 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-
+#include <set>
+#include <tuple>
 #include <functional>
 
 namespace linearseq {
@@ -283,6 +284,7 @@ void EventRowsWidget::draw() {
     
     // Access parent data
     const auto& rows = list_->rows_;
+    const auto& selectedRows = list_->selectedRows_;
     int cursorRow = list_->cursorRow_;
     int cursorCol = list_->cursorCol_;
     Fl_Widget* input = list_->editInput_;
@@ -308,36 +310,52 @@ void EventRowsWidget::draw() {
     }
     if (startRow < 0) startRow = 0;
     
+    // Include virtual blank row in rendering
+    int totalRows = static_cast<int>(rows.size()) + 1; // +1 for virtual row
     int endRow = startRow + (sh / rowHeight) + 2; 
-    if (endRow > (int)rows.size()) endRow = (int)rows.size();
+    if (endRow > totalRows) endRow = totalRows;
     
     // Clear Background for the visible area
     fl_color(FL_DARK2);
-    // Be careful with coordinates. We are drawing inside scroll clip.
-    // But this widget is potentially smaller/larger than scroll port?
-    // We should clear the rect covering startRow to endRow.
     int clearY = myY + (startRow * rowHeight);
     int clearH = (endRow - startRow) * rowHeight;
-    // Extend clearance to bottom if needed or entire widget?
-    // Since we only draw text for these rows, clearing just them is efficient.
-    // But if we scroll, Fl_Scroll copies pixels.
-    // If endRow < size, we are fine.
     fl_rectf(x(), clearY, w(), clearH);
 	
-    // Draw cursor if it exists
-    if (!input->visible() && cursorRow >= 0 && cursorRow < static_cast<int>(rows.size())) {
-        int cy = myY + (cursorRow * rowHeight); 
-        int cx = list_->x() + list_->getColumnX(cursorCol) - 2; // X corresponds to Header X
-        int cw = list_->getColumnWidth(cursorCol);
+    // Draw selections and cursor
+    if (!input->visible()) {
+        // Draw all selected rows
+        for (int selRow : selectedRows) {
+            if (selRow >= startRow && selRow < endRow) {
+                int cy = myY + (selRow * rowHeight);
+                fl_color(fl_rgb_color(60, 60, 100)); // Selection background
+                fl_rectf(x(), cy, w(), rowHeight);
+            }
+        }
         
-        fl_color(FL_SELECTION_COLOR);
-        fl_rectf(cx, cy, cw, rowHeight);
-        fl_color(FL_WHITE); // Text color on selection
+        // Draw cursor highlight on current cell
+        if (cursorRow >= 0 && cursorRow < totalRows) {
+            int cy = myY + (cursorRow * rowHeight); 
+            int cx = list_->x() + list_->getColumnX(cursorCol) - 2;
+            int cw = list_->getColumnWidth(cursorCol);
+            
+            fl_color(FL_SELECTION_COLOR);
+            fl_rectf(cx, cy, cw, rowHeight);
+        }
     }
 
 	for (int i = startRow; i < endRow; ++i) {
+        // Handle virtual blank row
+        if (i == static_cast<int>(rows.size())) {
+            int vy = myY + (i * rowHeight);
+            fl_color(FL_DARK3);
+            fl_draw("(insert here)", x() + 8, vy + 14);
+            continue;
+        }
+        
+        if (i >= static_cast<int>(rows.size())) continue;
+        
 		const auto& row = rows[i];
-		const std::string timestamp = formatMBT(row.absTick, 0); // Need ppqn access?
+		const std::string timestamp = formatMBT(row.absTick, 0);
         // Actually update formatMBT to handle Song logic or pass ppqn from List
         // formatMBT uses 0->480 default. Good enough for display generally or we fetch from list.
         
@@ -420,10 +438,41 @@ int EventRowsWidget::handle(int event) {
         
         int localY = Fl::event_y() - y();
         const int rowHeight = 18;
+        int clickedRow = -1;
         if (localY >= 0) {
             int r = localY / rowHeight;
-            if (r >= 0 && r < static_cast<int>(list_->rows_.size())) {
-                list_->cursorRow_ = r;
+            // Allow clicking on virtual blank row
+            if (r >= 0 && r <= static_cast<int>(list_->rows_.size())) {
+                clickedRow = r;
+            }
+        }
+        
+        if (clickedRow >= 0) {
+            bool shift = Fl::event_state() & FL_SHIFT;
+            bool ctrl = Fl::event_state() & FL_CTRL;
+            
+            if (shift && !list_->selectedRows_.empty()) {
+                // Shift+Click: Range selection from cursor to clicked row
+                int start = std::min(list_->cursorRow_, clickedRow);
+                int end = std::max(list_->cursorRow_, clickedRow);
+                list_->selectedRows_.clear();
+                for (int i = start; i <= end && i < static_cast<int>(list_->rows_.size()); ++i) {
+                    list_->selectedRows_.insert(i);
+                }
+                list_->cursorRow_ = clickedRow;
+            } else if (ctrl) {
+                // Ctrl+Click: Toggle selection
+                if (list_->selectedRows_.count(clickedRow)) {
+                    list_->selectedRows_.erase(clickedRow);
+                } else {
+                    list_->selectedRows_.insert(clickedRow);
+                }
+                list_->cursorRow_ = clickedRow;
+            } else {
+                // Normal click: Single selection
+                list_->selectedRows_.clear();
+                list_->selectedRows_.insert(clickedRow);
+                list_->cursorRow_ = clickedRow;
             }
         }
         
@@ -440,8 +489,6 @@ int EventRowsWidget::handle(int event) {
         
         list_->ensureCursorVisible();
         redraw();
-        // Don't consume return 1 here? If we do, parent might not see it?
-        // Actually, we handled it.
         return 1; 
     }
     return Fl_Widget::handle(event);
@@ -556,7 +603,7 @@ int EventList::handle(int event) {
 			return 1;
 		}
 		if (key == FL_End) {
-			cursorRow_ = static_cast<int>(rows_.size()) - 1;
+			cursorRow_ = static_cast<int>(rows_.size()); // Move to virtual row
 			ensureCursorVisible();
 		    if (rowsWidget_) rowsWidget_->redraw();
 			return 1;
@@ -594,7 +641,8 @@ void EventList::setItemFilter(int itemIndex) {
 int EventList::contentHeight() const {
 	const int headerHeight = 24;
 	const int rowHeight = 18;
-	return headerHeight + rowHeight + static_cast<int>(rows_.size()) * rowHeight + 8;
+	// +1 for virtual blank row
+	return headerHeight + rowHeight + (static_cast<int>(rows_.size()) + 1) * rowHeight + 8;
 }
 
 void EventList::rebuildRows() {
@@ -984,31 +1032,144 @@ void EventList::deleteSelectedEvent() {
     // Only allow deletion if a specific item is selected
     if (itemFilter_ < 0) return;
 
-    if (rows_.empty() || cursorRow_ < 0 || cursorRow_ >= (int)rows_.size()) return;
+    // Use selection if available, otherwise use cursor row
+    std::set<int> toDelete = selectedRows_.empty() ? 
+        std::set<int>{cursorRow_} : selectedRows_;
     
-    const auto& row = rows_[cursorRow_];
-    int tIdx = row.trackIndex;
-    int iIdx = row.itemIndex;
-    int eIdx = row.eventIndex;
+    if (toDelete.empty() || rows_.empty()) return;
     
-    // Sanity check
-    if (tIdx < 0 || tIdx >= (int)song_.tracks.size()) return;
-    auto& track = song_.tracks[tIdx];
-    if (iIdx < 0 || iIdx >= (int)track.items.size()) return;
-    auto& item = track.items[iIdx];
-    if (eIdx < 0 || eIdx >= (int)item.events.size()) return;
+    // Build list of events to delete: (trackIdx, itemIdx, eventIdx)
+    std::vector<std::tuple<int, int, int>> deleteList;
+    for (int rowIdx : toDelete) {
+        if (rowIdx >= 0 && rowIdx < static_cast<int>(rows_.size())) {
+            const auto& row = rows_[rowIdx];
+            deleteList.push_back({row.trackIndex, row.itemIndex, row.eventIndex});
+        }
+    }
     
-    // Delete
-    item.events.erase(item.events.begin() + eIdx);
+    // Sort in reverse order by eventIndex to maintain indices during deletion
+    std::sort(deleteList.begin(), deleteList.end(), 
+        [](const auto& a, const auto& b) {
+            if (std::get<0>(a) != std::get<0>(b)) return std::get<0>(a) > std::get<0>(b); // track
+            if (std::get<1>(a) != std::get<1>(b)) return std::get<1>(a) > std::get<1>(b); // item
+            return std::get<2>(a) > std::get<2>(b); // event
+        });
     
-    // Notify
+    // Delete events in reverse order
+    for (const auto& [tIdx, iIdx, eIdx] : deleteList) {
+        if (tIdx < 0 || tIdx >= static_cast<int>(song_.tracks.size())) continue;
+        auto& track = song_.tracks[tIdx];
+        if (iIdx < 0 || iIdx >= static_cast<int>(track.items.size())) continue;
+        auto& item = track.items[iIdx];
+        if (eIdx < 0 || eIdx >= static_cast<int>(item.events.size())) continue;
+        
+        item.events.erase(item.events.begin() + eIdx);
+    }
+    
+    // Clear selection and notify
+    selectedRows_.clear();
     if (onSongChanged_) onSongChanged_(song_);
     rebuildRows(); // Pointers invalidated!
     
     // Fix cursor
-    if (cursorRow_ >= (int)rows_.size()) {
-        cursorRow_ = (int)rows_.size() - 1;
+    if (cursorRow_ >= static_cast<int>(rows_.size())) {
+        cursorRow_ = std::max(0, static_cast<int>(rows_.size()) - 1);
     }
+    ensureCursorVisible();
+    redraw();
+}
+
+void EventList::copySelected() {
+    clipboardEvents_.clear();
+    
+    // Use selection if available, otherwise use cursor row
+    std::set<int> toCopy = selectedRows_.empty() ? 
+        std::set<int>{cursorRow_} : selectedRows_;
+    
+    if (toCopy.empty() || rows_.empty()) return;
+    
+    // Collect events and find minimum tick for normalization
+    std::vector<MidiEvent> events;
+    uint64_t minTick = UINT64_MAX;
+    
+    for (int rowIdx : toCopy) {
+        if (rowIdx >= 0 && rowIdx < static_cast<int>(rows_.size())) {
+            const auto& row = rows_[rowIdx];
+            if (row.event) {
+                events.push_back(*row.event);
+                if (row.absTick < minTick) {
+                    minTick = row.absTick;
+                }
+            }
+        }
+    }
+    
+    if (events.empty()) return;
+    
+    // Normalize events to relative ticks (first event at tick 0)
+    for (auto& evt : events) {
+        evt.tick = (evt.tick >= minTick) ? (evt.tick - minTick) : 0;
+    }
+    
+    clipboardEvents_ = std::move(events);
+}
+
+void EventList::pasteEvents() {
+    if (clipboardEvents_.empty() || itemFilter_ < 0) return;
+    
+    // Find target track and item
+    if (trackFilter_ < 0 || trackFilter_ >= static_cast<int>(song_.tracks.size())) return;
+    auto& track = song_.tracks[trackFilter_];
+    if (itemFilter_ < 0 || itemFilter_ >= static_cast<int>(track.items.size())) return;
+    auto& item = track.items[itemFilter_];
+    
+    // Determine target tick
+    uint64_t targetTick = 0;
+    if (cursorRow_ == static_cast<int>(rows_.size())) {
+        // Virtual blank row - paste at next beat after last event
+        if (!rows_.empty()) {
+            const auto& lastRow = rows_.back();
+            uint64_t lastEventEnd = lastRow.absTick + (lastRow.event ? lastRow.event->duration : 0);
+            // Round up to next beat
+            uint32_t ppqn = song_.ppqn > 0 ? song_.ppqn : DEFAULT_PPQN;
+            targetTick = ((lastEventEnd + ppqn - 1) / ppqn) * ppqn;
+        }
+    } else if (cursorRow_ >= 0 && cursorRow_ < static_cast<int>(rows_.size())) {
+        // Normal row - paste at cursor tick
+        targetTick = rows_[cursorRow_].absTick;
+    }
+    
+    // Paste events (overwrite mode - events can coexist at same tick)
+    std::vector<int> newEventIndices;
+    for (const auto& clipEvent : clipboardEvents_) {
+        MidiEvent newEvent = clipEvent;
+        newEvent.tick = static_cast<uint32_t>(clipEvent.tick + targetTick);
+        newEvent.channel = track.channel; // Use target track's channel
+        
+        item.events.push_back(newEvent);
+        newEventIndices.push_back(static_cast<int>(item.events.size()) - 1);
+    }
+    
+    // Notify and rebuild
+    if (onSongChanged_) onSongChanged_(song_);
+    rebuildRows();
+    
+    // Select the newly pasted events
+    selectedRows_.clear();
+    for (int eventIdx : newEventIndices) {
+        for (size_t i = 0; i < rows_.size(); ++i) {
+            if (rows_[i].trackIndex == trackFilter_ && 
+                rows_[i].itemIndex == itemFilter_ &&
+                rows_[i].eventIndex == eventIdx) {
+                selectedRows_.insert(static_cast<int>(i));
+                if (selectedRows_.size() == 1) {
+                    cursorRow_ = static_cast<int>(i); // Move cursor to first pasted event
+                }
+                break;
+            }
+        }
+    }
+    
     ensureCursorVisible();
     redraw();
 }

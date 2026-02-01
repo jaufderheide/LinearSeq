@@ -178,3 +178,27 @@
 - Removed status display from toolbar to free up space.
 - Dark background (FL_DARK1) with white text for better contrast.
 - Connection status shows device name when connected to specific MIDI port.
+
+### Feature: Event Multi-Select (2026-01-31) - Issue #10
+- Added multi-selection support in EventList with visual feedback.
+- **Click**: Single selection (selects clicked row).
+- **Shift+Click**: Range selection from cursor to clicked row.
+- **Ctrl+Click**: Toggle individual row in/out of selection.
+- Selected rows highlighted with blue-gray background.
+- Delete key deletes all selected events (in reverse order to preserve indices).
+- Selection cleared after operations like delete or paste.
+
+### Feature: Event Copy/Paste with Cross-Item Support (2026-01-31) - Issue #11
+- Full copy/paste workflow for MIDI events with multi-select support.
+- **Copy (Ctrl+C)**: Copies selected events (or cursor row if no selection).
+  - Events normalized to relative ticks (first event at tick 0).
+  - Clipboard is item-agnostic - can paste into any item.
+- **Paste (Ctrl+V)**: Pastes at cursor position or virtual blank row.
+  - Cursor position: Pastes at exact tick of cursor row.
+  - Virtual blank row: Pastes at next beat after last event (for appending).
+  - Pasted events adopt target track's channel.
+  - Newly pasted events automatically selected for easy repositioning.
+- **Cross-item paste**: Copy from one item, click different item, paste.
+- Overwrite mode: Events can coexist at same tick (normal MIDI behavior).
+- Virtual blank row always shown after last event labeled "(insert here)".
+- Supports copying events between different tracks and items seamlessly.

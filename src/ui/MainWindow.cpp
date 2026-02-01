@@ -379,11 +379,37 @@ int MainWindow::handle(int event) {
         // Copy/Paste shortcuts - handle these at window level
         if (key == 'c') {
             lastHandledShortcutKey_ = key;
-            onCopy();
+            // Check if EventList has focus - if so, copy events instead of items
+            Fl_Widget* focus = Fl::focus();
+            Fl_Widget* w = focus;
+            bool eventListFocus = false;
+            while (w) {
+                if (w == eventList_) {
+                    eventListFocus = true;
+                    break;
+                }
+                w = w->parent();
+            }
+            
+            if (eventListFocus) {
+                eventList_->copySelected();
+            } else {
+                onCopy();
+            }
             return 1;
         } else if (key == 'v') {
             lastHandledShortcutKey_ = key;
-            onPaste();
+            // Smart paste: check which clipboard has data
+            // If EventList has clipboard data and an item is filtered, use event paste
+            // Otherwise fall back to item paste
+            bool hasEventClipboard = eventList_->hasClipboardData();
+            bool hasItemFilter = (activeItemIndex_ >= 0);
+            
+            if (hasEventClipboard && hasItemFilter) {
+                eventList_->pasteEvents();
+            } else {
+                onPaste();
+            }
             return 1;
         }
     }
