@@ -68,6 +68,12 @@ void TrackView::setSong(const Song& song) {
             row->setSetTimeCallback([this](uint32_t tick) {
                 if (onSetTime_) onSetTime_(tick);
             });
+            row->setMuteChangedCallback([this](int trackIdx, bool mute) {
+                if (onMuteChanged_) onMuteChanged_(trackIdx, mute);
+            });
+            row->setSoloChangedCallback([this](int trackIdx, bool solo) {
+                if (onSoloChanged_) onSoloChanged_(trackIdx, solo);
+            });
 			rowViews_.push_back(row);
 		}
 		end();
@@ -126,6 +132,14 @@ void TrackView::setItemsMoved(std::function<void(int, const std::vector<std::pai
 
 void TrackView::setChannelChanged(std::function<void(int, int)> cb) {
 	onChannelChanged_ = std::move(cb);
+}
+
+void TrackView::setMuteChanged(std::function<void(int, bool)> cb) {
+	onMuteChanged_ = std::move(cb);
+}
+
+void TrackView::setSoloChanged(std::function<void(int, bool)> cb) {
+	onSoloChanged_ = std::move(cb);
 }
 
 void TrackView::setSetTime(std::function<void(uint32_t)> cb) {
@@ -221,7 +235,7 @@ void TrackView::draw() {
          const int measureWidth = 100; 
          const double pixelsPerTick = static_cast<double>(measureWidth) / static_cast<double>(ticksPerMeasure);
          
-         const int HEADER_WIDTH = 110; 
+         const int HEADER_WIDTH = 150; // Must match TrackRowView::HEADER_WIDTH
          int cx = x() + HEADER_WIDTH + static_cast<int>(playheadTick_ * pixelsPerTick);
          
          if (cx >= x() + HEADER_WIDTH && cx < x() + w()) {

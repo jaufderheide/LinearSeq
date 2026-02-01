@@ -44,6 +44,10 @@ private:
 	static void postInitScroll(void* data);
     static void playTimer(void* data);
 	void updateChannelInputs();
+	void updateWindowTitle();
+	void setModified(bool modified);
+	bool isModified() const { return modified_; }
+	void onClose();
 	static void onChannelInput(Fl_Widget* widget, void* data);
 	void refreshMidiDevices();
 	
@@ -73,6 +77,10 @@ private:
     
     // Playback state
     uint32_t currentTick_ = 0;
+    
+    // File state
+    std::string currentFilename_;
+    bool modified_ = false;
     
     // Shortcut handling state (to prevent duplicate handling)
     int lastHandledShortcutKey_ = 0;

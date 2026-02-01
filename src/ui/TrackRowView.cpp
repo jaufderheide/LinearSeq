@@ -9,15 +9,41 @@
 namespace linearseq {
 
 TrackRowView::TrackRowView(int x, int y, int w, int h)
-	: Fl_Group(x, y, w, h), nameLabel_(nullptr), channelInput_(nullptr), trackIndex_(-1) {
+	: Fl_Group(x, y, w, h), muteButton_(nullptr), soloButton_(nullptr), nameLabel_(nullptr), channelInput_(nullptr), trackIndex_(-1) {
     
     box(FL_NO_BOX);
 	begin();
-	nameLabel_ = new Fl_Box(x + 8, y + 6, 60, h - 12);
+	
+	// Mute button
+	muteButton_ = new Fl_Button(x + MUTE_X, y + 6, MUTE_W, h - 12, "M");
+	muteButton_->type(FL_TOGGLE_BUTTON);
+	muteButton_->box(FL_FLAT_BOX);
+	muteButton_->color(FL_DARK3);
+	muteButton_->selection_color(fl_rgb_color(200, 0, 0)); // Red when active
+	muteButton_->labelsize(10);
+	muteButton_->labelcolor(FL_WHITE);
+	muteButton_->callback([](Fl_Widget*, void* data) {
+		static_cast<TrackRowView*>(data)->onMuteToggled();
+	}, this);
+	
+	// Solo button
+	soloButton_ = new Fl_Button(x + SOLO_X, y + 6, SOLO_W, h - 12, "S");
+	soloButton_->type(FL_TOGGLE_BUTTON);
+	soloButton_->box(FL_FLAT_BOX);
+	soloButton_->color(FL_DARK3);
+	soloButton_->selection_color(fl_rgb_color(255, 200, 0)); // Yellow when active
+	soloButton_->labelsize(10);
+	soloButton_->labelcolor(FL_WHITE);
+	soloButton_->callback([](Fl_Widget*, void* data) {
+		static_cast<TrackRowView*>(data)->onSoloToggled();
+	}, this);
+	
+	nameLabel_ = new Fl_Box(x + NAME_LABEL_X, y + 6, NAME_LABEL_W, h - 12);
 	nameLabel_->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
 	nameLabel_->labelcolor(FL_WHITE);
+    
 
-	channelInput_ = new Fl_Int_Input(x + 74, y + 6, 32, h - 12);
+	channelInput_ = new Fl_Int_Input(x + CHANNEL_INPUT_X, y + 6, CHANNEL_INPUT_W, h - 12);
 	channelInput_->type(FL_INT_INPUT);
 	channelInput_->box(FL_FLAT_BOX); // Ensure flat style
 	channelInput_->color(FL_LIGHT2); // Background color
@@ -37,6 +63,17 @@ void TrackRowView::setTrack(const Track& track, int index, uint32_t ppqn) {
 	const char* name = track.name.empty() ? "Track" : track.name.c_str();
 	nameLabel_->label(name);
 	channelInput_->value(std::to_string(static_cast<int>(track.channel) + 1).c_str());
+	
+	// Update mute button state
+	if (muteButton_) {
+		muteButton_->value(track.mute ? 1 : 0);
+	}
+	
+	// Update solo button state
+	if (soloButton_) {
+		soloButton_->value(track.solo ? 1 : 0);
+	}
+	
     redraw();
 }
 
@@ -66,6 +103,14 @@ void TrackRowView::setSetTimeCallback(std::function<void(uint32_t)> cb) {
     onSetTime_ = std::move(cb);
 }
 
+void TrackRowView::setMuteChangedCallback(std::function<void(int, bool)> cb) {
+	onMuteChanged_ = std::move(cb);
+}
+
+void TrackRowView::setSoloChangedCallback(std::function<void(int, bool)> cb) {
+	onSoloChanged_ = std::move(cb);
+}
+
 int TrackRowView::trackIndex() const {
 	return trackIndex_;
 }
@@ -73,8 +118,10 @@ int TrackRowView::trackIndex() const {
 void TrackRowView::resize(int x, int y, int w, int h) {
     Fl_Group::resize(x, y, w, h);
     // Enforce Layout
-    if (nameLabel_) nameLabel_->resize(x + 8, y + 6, 60, h - 12);
-    if (channelInput_) channelInput_->resize(x + 74, y + 6, 32, h - 12);
+    if (muteButton_) muteButton_->resize(x + MUTE_X, y + 6, MUTE_W, h - 12);
+    if (soloButton_) soloButton_->resize(x + SOLO_X, y + 6, SOLO_W, h - 12);
+    if (nameLabel_) nameLabel_->resize(x + NAME_LABEL_X, y + 6, NAME_LABEL_W, h - 12);
+    if (channelInput_) channelInput_->resize(x + CHANNEL_INPUT_X, y + 6, CHANNEL_INPUT_W, h - 12);
 }
 
 void TrackRowView::draw() {
@@ -190,6 +237,11 @@ int TrackRowView::handle(int event) {
 
             // Selection Logic
             if (clickedItem != -1) {
+                // Move playhead to item start tick (Issue #9)
+                if (onSetTime_ && clickedItem < static_cast<int>(track_->items.size())) {
+                    onSetTime_(track_->items[clickedItem].startTick);
+                }
+                
                 bool isCtrl = (Fl::event_state() & FL_CTRL) != 0;
                 bool isSelected = selectedItems_.count(clickedItem) > 0;
                 
@@ -362,6 +414,20 @@ void TrackRowView::onChannelChanged() {
 	channelInput_->value(std::to_string(channel).c_str());
 	if (onChannelChanged_) {
 		onChannelChanged_(trackIndex_, channel);
+	}
+}
+
+void TrackRowView::onMuteToggled() {
+	if (onMuteChanged_ && muteButton_) {
+		bool mute = muteButton_->value() != 0;
+		onMuteChanged_(trackIndex_, mute);
+	}
+}
+
+void TrackRowView::onSoloToggled() {
+	if (onSoloChanged_ && soloButton_) {
+		bool solo = soloButton_->value() != 0;
+		onSoloChanged_(trackIndex_, solo);
 	}
 }
 

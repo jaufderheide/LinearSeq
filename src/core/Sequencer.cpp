@@ -90,7 +90,26 @@ void Sequencer::buildPlaybackQueue() {
 	playbackQueue_.clear();
 	playbackIndex_ = 0;
 
+	// Check if any tracks are soloed
+	bool anySolo = false;
 	for (const auto& track : song_.tracks) {
+		if (track.solo) {
+			anySolo = true;
+			break;
+		}
+	}
+
+	for (const auto& track : song_.tracks) {
+		// Skip muted tracks
+		if (track.mute) {
+			continue;
+		}
+		
+		// Skip track if solo mode is active and this track is not soloed
+		if (anySolo && !track.solo) {
+			continue;
+		}
+		
 		for (const auto& item : track.items) {
 			for (const auto& event : item.events) {
 				PlaybackEvent pe;

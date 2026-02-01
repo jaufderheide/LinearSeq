@@ -20,6 +20,8 @@ public:
 	void setItemsMoved(std::function<void(int, const std::vector<std::pair<int, uint32_t>>&)> cb);
 	void setChannelChanged(std::function<void(int, int)> cb);
     void setSetTime(std::function<void(uint32_t)> cb);
+    void setMuteChanged(std::function<void(int, bool)> cb);
+    void setSoloChanged(std::function<void(int, bool)> cb);
     
 	int selectedTrack() const;
 	void setSelectedTrack(int index);
@@ -46,7 +48,7 @@ private:
 	std::function<void(int, std::set<int>)> onItemSelectionChanged_;
     std::function<void(int, const std::vector<std::pair<int, uint32_t>>&)> onItemsMoved_;
 	std::function<void(int, int)> onChannelChanged_;
-    std::function<void(uint32_t)> onSetTime_;
+    std::function<void(uint32_t)> onSetTime_;    std::function<void(int, bool)> onMuteChanged_;    std::function<void(int, bool)> onSoloChanged_;
 	std::vector<class TrackRowView*> rowViews_;
 };
 

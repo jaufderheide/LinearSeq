@@ -39,6 +39,8 @@ struct Track {
 	int alsaClient = -1;
 	int alsaPort = -1;
 	uint8_t channel = 0;
+	bool mute = false; // Mute state for track silencing
+	bool solo = false; // Solo state for track isolation
 	std::vector<MidiItem> items;
 };
 

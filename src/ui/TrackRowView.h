@@ -3,6 +3,7 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Int_Input.H>
 #include <FL/Fl_Box.H>
+#include <FL/Fl_Button.H>
 
 #include <functional>
 #include <set>
@@ -25,7 +26,9 @@ public:
     // Callback: vector of {itemIndex, newStartTick}
     void setItemsMovedCallback(std::function<void(int, const std::vector<std::pair<int, uint32_t>>&)> cb);
     void setSetTimeCallback(std::function<void(uint32_t)> cb);
-
+    void setMuteChangedCallback(std::function<void(int, bool)> cb);
+    void setSoloChangedCallback(std::function<void(int, bool)> cb);
+    
 	int trackIndex() const;
     
     void resize(int x, int y, int w, int h) override;
@@ -34,7 +37,11 @@ public:
 
 private:
 	void onChannelChanged();
+	void onMuteToggled();
+	void onSoloToggled();
 
+	Fl_Button* muteButton_;
+	Fl_Button* soloButton_;
 	Fl_Box* nameLabel_;
 	Fl_Int_Input* channelInput_;
 	int trackIndex_;
@@ -53,10 +60,24 @@ private:
     std::function<void(int, std::set<int>)> onItemSelectionChanged_;
     std::function<void(int, const std::vector<std::pair<int, uint32_t>>&)> onItemsMoved_;
     std::function<void(uint32_t)> onSetTime_;
+    std::function<void(int, bool)> onMuteChanged_;
+    std::function<void(int, bool)> onSoloChanged_;
 
     double getPixelsPerTick() const;
     void getItemRect(const MidiItem& item, int& rx, int& ry, int& rw, int& rh) const;
-    static constexpr int HEADER_WIDTH = 110;
+
+
+    static constexpr int MUTE_X = 8;
+	static constexpr int SOLO_X = 30;
+	static constexpr int NAME_LABEL_X = 54;
+	static constexpr int CHANNEL_INPUT_X = 118;
+
+    static constexpr int MUTE_W = 20;
+	static constexpr int SOLO_W = 20;
+	static constexpr int NAME_LABEL_W = 60;
+	static constexpr int CHANNEL_INPUT_W = 24;
+
+    static constexpr int HEADER_WIDTH = CHANNEL_INPUT_X+CHANNEL_INPUT_W+8; //150
 };
 
 } // namespace linearseq

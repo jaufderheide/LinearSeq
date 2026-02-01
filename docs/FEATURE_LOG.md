@@ -202,3 +202,33 @@
 - Overwrite mode: Events can coexist at same tick (normal MIDI behavior).
 - Virtual blank row always shown after last event labeled "(insert here)".
 - Supports copying events between different tracks and items seamlessly.
+
+### Feature: Click Item to Move Playhead (2026-02-01) - Issue #9
+- Clicking on any MIDI item in TrackView automatically moves playhead to item start.
+- Provides quick navigation to specific sections of the sequence.
+- Works with all item selection modes (single, Ctrl+Click, Shift+Click).
+- Playhead position immediately visible in timeline and status bar.
+
+### Feature: Solo Track (2026-02-01) - Issue #8
+- Added solo button ("S") to each track row before track name.
+- **Yellow highlight**: Track is soloed and will play exclusively.
+- **Solo mode logic**: When any track is soloed, only soloed tracks play.
+- Multiple tracks can be soloed simultaneously for isolation of specific parts.
+- Solo state persists in song file (`.lseq` format).
+- Playback queue filtered in `Sequencer::buildPlaybackQueue()` based on solo state.
+- Essential for composition workflow and live performance mixing.
+
+### Feature: File Edit Status Tracking (2026-02-01) - Issue #12
+- Window title shows file edit state: `LinearSeq - filename [modified]`.
+- Tracks modifications to song, tracks, items, events, channels, solo state, etc.
+- Modified flag set on any change: add/delete track or item, edit events, change channel.
+- Modified flag cleared on save or load operations.
+- Filename extracted from file path (without `.lseq` extension).
+- Provides clear visual feedback for unsaved changes.
+
+### Feature: Confirm Save on Exit (2026-02-01) - Issue #13
+- Dialog appears when closing window with unsaved changes.
+- Three options: **Save** (saves then exits), **Don't Save** (exits without saving), **Cancel** (returns to app).
+- Prevents accidental data loss during composition sessions.
+- Integrated with file edit status tracking (Issue #12).
+- Uses FLTK `fl_choice()` for native dialog appearance.

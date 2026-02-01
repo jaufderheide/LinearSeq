@@ -119,8 +119,8 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	const int splitter = h / 2;
 
     // Register Font Awesome (Globally used)
-    Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
-	// Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
+    // Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
+	Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
 	
 
     // Toolbar
@@ -173,6 +173,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	eventList_->setOnSongChanged([this](const Song& song) {
 		song_ = song;
 		sequencer_.setSong(song_);
+		setModified(true);
 	});
 	trackView_->setChannelChanged([this](int index, int channel) {
 		if (index < 0 || index >= static_cast<int>(song_.tracks.size())) {
@@ -180,6 +181,27 @@ MainWindow::MainWindow(int w, int h, const char* title)
 		}
 		song_.tracks[index].channel = static_cast<uint8_t>(channel - 1);
 		sequencer_.setSong(song_);
+		setModified(true);
+	});
+	
+	trackView_->setMuteChanged([this](int index, bool mute) {
+		if (index < 0 || index >= static_cast<int>(song_.tracks.size())) {
+			return;
+		}
+		song_.tracks[index].mute = mute;
+		sequencer_.setSong(song_);
+		trackView_->setSong(song_); // Refresh to update button states
+		setModified(true);
+	});
+	
+	trackView_->setSoloChanged([this](int index, bool solo) {
+		if (index < 0 || index >= static_cast<int>(song_.tracks.size())) {
+			return;
+		}
+		song_.tracks[index].solo = solo;
+		sequencer_.setSong(song_);
+		trackView_->setSong(song_); // Refresh to update button states
+		setModified(true);
 	});
 
 	trackView_->setSelectionChanged([this](int index) {
@@ -225,6 +247,7 @@ MainWindow::MainWindow(int w, int h, const char* title)
                 sequencer_.setSong(song_);
                 // Update specific track in view or full refresh
                 trackView_->setSong(song_); 
+                setModified(true);
                 // Also update event list if it's showing this item
                 // Simplification for now: re-set filter if active item was implicated?
                 // Just refreshing song on TrackView handles visuals.
@@ -255,6 +278,11 @@ MainWindow::MainWindow(int w, int h, const char* title)
     
     refreshViews();
 	end();
+	
+	// Set close callback to handle unsaved changes
+	callback([](Fl_Widget* w, void* data) {
+		static_cast<MainWindow*>(data)->onClose();
+	}, this);
 	
 	// Register global event handler for application-level shortcuts
 	instanceForHandler_ = this;
@@ -584,7 +612,7 @@ void MainWindow::playTimer(void* data) {
         const uint64_t ticksPerMeasure = static_cast<uint64_t>(ppqn) * beatsPerMeasure;
         const int measureWidth = 100; // Must match TrackRowView::getPixelsPerTick()
         const double pixelsPerTick = static_cast<double>(measureWidth) / static_cast<double>(ticksPerMeasure);
-        const int headerWidth = 110; // Must match TrackRowView::HEADER_WIDTH
+        const int headerWidth = 150; // Must match TrackRowView::HEADER_WIDTH
         
         // Calculate playhead position in pixels
         const int playheadX = static_cast<int>(mw->currentTick_ * pixelsPerTick) + headerWidth;
@@ -640,6 +668,7 @@ void MainWindow::onAddTrack() {
 	sequencer_.setSong(song_);
 
     refreshViews();
+    setModified(true);
 
     // Redundant call removed. refreshViews() -> trackView_->setSong() will
     // now correctly update and layout rows without needing a second nudge.
@@ -682,6 +711,7 @@ void MainWindow::onDeleteTrack() {
     trackView_->setSelectedTrack(newSelection);
     
     refreshViews();
+    setModified(true);
     
     // Update toolbar name
     if (newSelection >= 0) {
@@ -758,6 +788,7 @@ void MainWindow::onAddItem() {
 	activeItemIndex_ = static_cast<int>(items.size() - 1);
 	sequencer_.setSong(song_);
 	refreshViews();
+	setModified(true);
 	
 	// Give focus to TrackView so Delete key works immediately
 	trackView_->take_focus();
@@ -771,6 +802,7 @@ void MainWindow::onTrackNameChanged(std::string name) {
 	song_.tracks[trackIndex].name = name;
 	sequencer_.setSong(song_);
 	refreshViews();
+	setModified(true);
 }
 
 
@@ -805,9 +837,32 @@ void MainWindow::onFileSave() {
     }
 
 	SongJson::saveToFile(song_, pathStr);
+	
+	// Update file state
+	currentFilename_ = fs::path(pathStr).stem().string();
+	setModified(false);
 }
 
 void MainWindow::onFileLoad() {
+	// Check for unsaved changes before loading
+	if (modified_) {
+		int choice = fl_choice(
+			"Save changes before loading?",
+			"Cancel",      // 0
+			"Don't Save",  // 1
+			"Save"         // 2
+		);
+		
+		if (choice == 0) {
+			// Cancel - don't load
+			return;
+		} else if (choice == 2) {
+			// Save current file first
+			onFileSave();
+		}
+		// If choice == 1 (Don't Save), continue with load
+	}
+	
 	Fl_Native_File_Chooser chooser;
 	chooser.title("Open LinearSeq JSON");
 	chooser.type(Fl_Native_File_Chooser::BROWSE_FILE);
@@ -854,6 +909,49 @@ void MainWindow::onFileLoad() {
 	sequencer_.setActiveTrack(trackIndex < 0 ? 0 : trackIndex);
 	toolbar_->setTrackName(song_.tracks.empty() ? "Track 1" : song_.tracks[0].name.c_str());
 	refreshViews();
+	
+	// Update file state
+	currentFilename_ = fs::path(path).stem().string();
+	setModified(false);
+}
+
+void MainWindow::updateWindowTitle() {
+	std::string title = "LinearSeq";
+	if (!currentFilename_.empty()) {
+		title += " - " + currentFilename_;
+		if (modified_) {
+			title += " [modified]";
+		}
+	}
+	label(title.c_str());
+}
+
+void MainWindow::setModified(bool modified) {
+	modified_ = modified;
+	updateWindowTitle();
+}
+
+void MainWindow::onClose() {
+	if (modified_) {
+		int choice = fl_choice(
+			"Save changes before closing?",
+			"Cancel",      // 0
+			"Don't Save",  // 1
+			"Save"         // 2
+		);
+		
+		if (choice == 0) {
+			// Cancel - don't close
+			return;
+		} else if (choice == 2) {
+			// Save
+			onFileSave();
+		}
+		// If choice == 1 (Don't Save), just fall through and close
+	}
+	
+	// Hide the window to close it
+	hide();
 }
 
 } // namespace linearseq
