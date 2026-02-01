@@ -3,6 +3,7 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Menu_Button.H>
 #include <FL/Fl_Scroll.H>
 #include <vector>
 #include <set>
@@ -36,6 +37,7 @@ public:
 
     // Editing Commands
     void insertEvent();
+    void insertMultipleEvents(int noteValue); // noteValue: 1=whole, 2=half, 4=quarter, 8=eighth, 16=sixteenth
     void deleteSelectedEvent();
     void copySelected();
     void pasteEvents();
@@ -51,6 +53,7 @@ private:
 	int getColumnWidth(int col) const;
 	void ensureCursorVisible();
 	void moveCursor(int dRow, int dCol); // New helper
+	uint8_t getDefaultPitch() const; // Get last note from track or middle C
 
 	void startEdit(const char* initialValue = nullptr);
 	void stopEdit(bool save);
@@ -78,7 +81,7 @@ private:
     EventRowsWidget* rowsWidget_ = nullptr;
 
 	Fl_Input* editInput_ = nullptr;
-    Fl_Button* insertButton_ = nullptr;
+    Fl_Menu_Button* insertButton_ = nullptr;
     Fl_Button* deleteButton_ = nullptr;
 
 	std::function<void(const Song&)> onSongChanged_;

@@ -169,13 +169,30 @@ EventList::EventList(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
     int btnW = 60;
     int btnH = 20;
     
-    insertButton_ = new Fl_Button(0, 0, btnW, btnH, "Insert");
+    insertButton_ = new Fl_Menu_Button(0, 0, btnW, btnH, "Insert");
     insertButton_->labelsize(10); 
     insertButton_->box(FL_FLAT_BOX);
     insertButton_->color(FL_LIGHT2);
-    insertButton_->tooltip("Insert Event (Insert Key)");
+    insertButton_->tooltip("Insert Event (Insert Key) / Right-click for Multiple");
+    // Left click inserts single event
     insertButton_->callback([](Fl_Widget* w, void* v) {
         static_cast<EventList*>(v)->insertEvent();
+    }, this);
+    // Add menu items for Insert Multiple
+    insertButton_->add("Insert Multiple/Whole Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+        static_cast<EventList*>(v)->insertMultipleEvents(1);
+    }, this);
+    insertButton_->add("Insert Multiple/Half Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+        static_cast<EventList*>(v)->insertMultipleEvents(2);
+    }, this);
+    insertButton_->add("Insert Multiple/Quarter Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+        static_cast<EventList*>(v)->insertMultipleEvents(4);
+    }, this);
+    insertButton_->add("Insert Multiple/Eighth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+        static_cast<EventList*>(v)->insertMultipleEvents(8);
+    }, this);
+    insertButton_->add("Insert Multiple/Sixteenth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+        static_cast<EventList*>(v)->insertMultipleEvents(16);
     }, this);
 
     deleteButton_ = new Fl_Button(0, 0, btnW, btnH, "Delete");
@@ -1028,6 +1045,87 @@ void EventList::insertEvent() {
     redraw();
 }
 
+void EventList::insertMultipleEvents(int noteValue) {
+    // Only allow insertion if a specific item is selected
+    if (itemFilter_ < 0) return;
+    if (song_.tracks.empty()) return;
+
+    // Determine context (same as insertEvent)
+    int trackIndex = 0;
+    int itemIndex = 0;
+    uint32_t startTick = 0;
+    
+    if (!rows_.empty() && cursorRow_ >= 0 && cursorRow_ < (int)rows_.size()) {
+        const auto& row = rows_[cursorRow_];
+        trackIndex = row.trackIndex;
+        itemIndex = row.itemIndex;
+        if (row.event) {
+            startTick = row.event->tick;
+        }
+    } else {
+        if (trackFilter_ >= 0) trackIndex = trackFilter_;
+        if (trackIndex < (int)song_.tracks.size()) {
+            if (!song_.tracks[trackIndex].items.empty()) {
+                itemIndex = 0;
+                if (itemFilter_ >= 0) itemIndex = itemFilter_;
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+    }
+    
+    // Validate indices
+    if (trackIndex < 0 || trackIndex >= (int)song_.tracks.size()) return;
+    auto& track = song_.tracks[trackIndex];
+    if (itemIndex < 0 || itemIndex >= (int)track.items.size()) return;
+    auto& item = track.items[itemIndex];
+    
+    // Calculate note duration and count
+    const uint32_t ppqn = song_.ppqn > 0 ? song_.ppqn : DEFAULT_PPQN;
+    const uint32_t beatsPerMeasure = 4;
+    const uint32_t ticksPerMeasure = ppqn * beatsPerMeasure;
+    
+    // Calculate ticks per note based on note value
+    // noteValue: 1=whole, 2=half, 4=quarter, 8=eighth, 16=sixteenth
+    uint32_t ticksPerNote = (ppqn * 4) / noteValue;
+    int noteCount = ticksPerMeasure / ticksPerNote;
+    
+    // Get default pitch (last note in track or middle C)
+    uint8_t pitch = getDefaultPitch();
+    
+    // Create events
+    for (int i = 0; i < noteCount; ++i) {
+        MidiEvent evt;
+        evt.tick = startTick + (i * ticksPerNote);
+        evt.status = MidiStatus::NoteOn;
+        evt.channel = track.channel;
+        evt.data1 = pitch;
+        evt.data2 = 100; // Default velocity
+        evt.duration = ticksPerNote; // Duration equals interval
+        
+        item.events.push_back(evt);
+    }
+    
+    // Notify and rebuild
+    if (onSongChanged_) onSongChanged_(song_);
+    rebuildRows();
+    
+    // Move cursor to first inserted event
+    int targetEventIdx = (int)item.events.size() - noteCount;
+    for (size_t i = 0; i < rows_.size(); ++i) {
+        if (rows_[i].trackIndex == trackIndex && 
+            rows_[i].itemIndex == itemIndex &&
+            rows_[i].eventIndex == targetEventIdx) {
+            cursorRow_ = (int)i;
+            ensureCursorVisible();
+            break;
+        }
+    }
+    redraw();
+}
+
 void EventList::deleteSelectedEvent() {
     // Only allow deletion if a specific item is selected
     if (itemFilter_ < 0) return;
@@ -1172,6 +1270,38 @@ void EventList::pasteEvents() {
     
     ensureCursorVisible();
     redraw();
+}
+
+uint8_t EventList::getDefaultPitch() const {
+    // Try to find the last note from the currently selected track
+    if (trackFilter_ >= 0 && trackFilter_ < static_cast<int>(song_.tracks.size())) {
+        const auto& track = song_.tracks[trackFilter_];
+        
+        // Search through all items in the track for the most recent note
+        uint64_t latestTick = 0;
+        uint8_t latestPitch = 60; // Default to middle C
+        bool foundNote = false;
+        
+        for (const auto& item : track.items) {
+            for (const auto& event : item.events) {
+                if (event.status == MidiStatus::NoteOn) {
+                    uint64_t eventAbsTick = static_cast<uint64_t>(item.startTick) + event.tick;
+                    if (!foundNote || eventAbsTick > latestTick) {
+                        latestTick = eventAbsTick;
+                        latestPitch = event.data1;
+                        foundNote = true;
+                    }
+                }
+            }
+        }
+        
+        if (foundNote) {
+            return latestPitch;
+        }
+    }
+    
+    // Default to middle C if no notes found
+    return 60;
 }
 
 } // namespace linearseq
