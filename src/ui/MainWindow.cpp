@@ -16,6 +16,7 @@
 #include "ui/EventList.h"
 #include "ui/MainToolbar.h"
 #include "ui/TrackView.h"
+#include "ui/TrackRowView.h"
 #include "utils/SongJson.h"
 
 namespace fs = std::filesystem;
@@ -612,10 +613,9 @@ void MainWindow::playTimer(void* data) {
         const uint64_t ticksPerMeasure = static_cast<uint64_t>(ppqn) * beatsPerMeasure;
         const int measureWidth = 100; // Must match TrackRowView::getPixelsPerTick()
         const double pixelsPerTick = static_cast<double>(measureWidth) / static_cast<double>(ticksPerMeasure);
-        const int headerWidth = 150; // Must match TrackRowView::HEADER_WIDTH
         
         // Calculate playhead position in pixels
-        const int playheadX = static_cast<int>(mw->currentTick_ * pixelsPerTick) + headerWidth;
+        const int playheadX = static_cast<int>(mw->currentTick_ * pixelsPerTick) + TrackRowView::HEADER_WIDTH;
         
         // Get current scroll position and viewport width
         const int scrollX = mw->trackScroll_->xposition();

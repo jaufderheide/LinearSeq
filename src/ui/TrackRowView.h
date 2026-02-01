@@ -31,6 +31,9 @@ public:
     
 	int trackIndex() const;
     
+    // Public layout constant - used by TrackView and MainWindow for coordinate calculations
+    static constexpr int HEADER_WIDTH = 150; // CHANNEL_INPUT_X + CHANNEL_INPUT_W + 8
+    
     void resize(int x, int y, int w, int h) override;
     void draw() override;
     int handle(int event) override;
@@ -66,7 +69,7 @@ private:
     double getPixelsPerTick() const;
     void getItemRect(const MidiItem& item, int& rx, int& ry, int& rw, int& rh) const;
 
-
+    // Private layout constants - internal widget positioning
     static constexpr int MUTE_X = 8;
 	static constexpr int SOLO_X = 30;
 	static constexpr int NAME_LABEL_X = 54;
@@ -76,8 +79,6 @@ private:
 	static constexpr int SOLO_W = 20;
 	static constexpr int NAME_LABEL_W = 60;
 	static constexpr int CHANNEL_INPUT_W = 24;
-
-    static constexpr int HEADER_WIDTH = CHANNEL_INPUT_X+CHANNEL_INPUT_W+8; //150
 };
 
 } // namespace linearseq

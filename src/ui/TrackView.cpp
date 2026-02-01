@@ -235,10 +235,9 @@ void TrackView::draw() {
          const int measureWidth = 100; 
          const double pixelsPerTick = static_cast<double>(measureWidth) / static_cast<double>(ticksPerMeasure);
          
-         const int HEADER_WIDTH = 150; // Must match TrackRowView::HEADER_WIDTH
-         int cx = x() + HEADER_WIDTH + static_cast<int>(playheadTick_ * pixelsPerTick);
+         int cx = x() + TrackRowView::HEADER_WIDTH + static_cast<int>(playheadTick_ * pixelsPerTick);
          
-         if (cx >= x() + HEADER_WIDTH && cx < x() + w()) {
+         if (cx >= x() + TrackRowView::HEADER_WIDTH && cx < x() + w()) {
              fl_color(FL_RED);
              fl_line(cx, y(), cx, y() + h());
          }
