@@ -127,9 +127,8 @@ MainWindow::MainWindow(int w, int h, const char* title)
 	const int splitter = h / 2;
 
     // Register Font Awesome (Globally used)
-    // Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
-	Fl::set_font(FL_FREE_FONT, "Font Awesome 6 Free"); //Alpine WSL
-	
+	// TODO: We should put this in a config file later becasue different systems have different names/paths
+    Fl::set_font(FL_FREE_FONT, "FontAwesome"); //lubunto 24
 
     // Toolbar
     toolbar_ = new MainToolbar(0, 0, w, toolbarHeight);
