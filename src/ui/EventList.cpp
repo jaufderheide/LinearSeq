@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
 #include <tuple>
 #include <functional>
 
@@ -1322,35 +1323,56 @@ void EventList::scaleVelocity() {
     std::vector<int> sortedRows(selectedRows_.begin(), selectedRows_.end());
     std::sort(sortedRows.begin(), sortedRows.end());
     
-    // Get first and last event velocities
-    if (sortedRows.front() >= static_cast<int>(rows_.size()) || 
-        sortedRows.back() >= static_cast<int>(rows_.size())) return;
-    
-    const auto& firstRow = rows_[sortedRows.front()];
-    const auto& lastRow = rows_[sortedRows.back()];
-    
-    if (!firstRow.event || !lastRow.event) return;
-    if (firstRow.event->status != MidiStatus::NoteOn || 
-        lastRow.event->status != MidiStatus::NoteOn) return;
-    
-    int startVelocity = firstRow.event->data2;
-    int endVelocity = lastRow.event->data2;
-    int steps = static_cast<int>(sortedRows.size()) - 1;
-    
-    // Apply linear interpolation to all selected events
-    for (size_t i = 0; i < sortedRows.size(); ++i) {
-        int rowIdx = sortedRows[i];
+    // Group events by timestamp (for chord handling)
+    std::map<uint64_t, std::vector<int>> eventsByTick;
+    for (int rowIdx : sortedRows) {
         if (rowIdx < 0 || rowIdx >= static_cast<int>(rows_.size())) continue;
-        
-        auto& row = rows_[rowIdx];
+        const auto& row = rows_[rowIdx];
         if (!row.event || row.event->status != MidiStatus::NoteOn) continue;
         
-        // Calculate interpolated velocity
-        float t = (steps > 0) ? (static_cast<float>(i) / steps) : 0.0f;
+        eventsByTick[row.absTick].push_back(rowIdx);
+    }
+    
+    if (eventsByTick.empty()) return;
+    
+    // Get first and last timestamp groups
+    auto firstGroup = eventsByTick.begin();
+    auto lastGroup = std::prev(eventsByTick.end());
+    
+    // Get average velocity of first and last groups
+    int startVelocity = 0;
+    for (int rowIdx : firstGroup->second) {
+        startVelocity += rows_[rowIdx].event->data2;
+    }
+    startVelocity /= static_cast<int>(firstGroup->second.size());
+    
+    int endVelocity = 0;
+    for (int rowIdx : lastGroup->second) {
+        endVelocity += rows_[rowIdx].event->data2;
+    }
+    endVelocity /= static_cast<int>(lastGroup->second.size());
+    
+    // Calculate interpolation based on unique timestamps
+    int steps = static_cast<int>(eventsByTick.size()) - 1;
+    int groupIndex = 0;
+    
+    for (const auto& [tick, rowIndices] : eventsByTick) {
+        // Calculate interpolated velocity for this timestamp
+        float t = (steps > 0) ? (static_cast<float>(groupIndex) / steps) : 0.0f;
         int newVelocity = static_cast<int>(startVelocity + t * (endVelocity - startVelocity));
         newVelocity = std::max(1, std::min(127, newVelocity)); // Clamp to valid MIDI range (1-127)
         
-        row.event->data2 = static_cast<uint8_t>(newVelocity);
+        // Apply same velocity to all events at this timestamp (chord)
+        for (int rowIdx : rowIndices) {
+            if (rowIdx >= 0 && rowIdx < static_cast<int>(rows_.size())) {
+                auto& row = rows_[rowIdx];
+                if (row.event && row.event->status == MidiStatus::NoteOn) {
+                    row.event->data2 = static_cast<uint8_t>(newVelocity);
+                }
+            }
+        }
+        
+        groupIndex++;
     }
     
     // Notify and redraw

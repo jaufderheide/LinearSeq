@@ -963,6 +963,7 @@ void MainWindow::onTrackPitchShift() {
 		}
 	}
 	
+	sequencer_.setSong(song_); // Update sequencer with modified song
 	setModified(true);
 	refreshViews();
 }
