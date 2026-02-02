@@ -82,7 +82,8 @@ private:
     EventRowsWidget* rowsWidget_ = nullptr;
 
 	Fl_Input* editInput_ = nullptr;
-    Fl_Menu_Button* insertButton_ = nullptr;
+    Fl_Button* insertButton_ = nullptr;
+    Fl_Menu_Button* insertMenuButton_ = nullptr; // Small dropdown next to Insert
     Fl_Button* deleteButton_ = nullptr;
     Fl_Button* scaleButton_ = nullptr;
 

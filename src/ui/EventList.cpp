@@ -169,30 +169,38 @@ EventList::EventList(int x, int y, int w, int h) : Fl_Group(x, y, w, h) {
     // Header Buttons
     int btnW = 60;
     int btnH = 20;
+    int dropW = 14; // Width for dropdown arrow button
     
-    insertButton_ = new Fl_Menu_Button(0, 0, btnW, btnH, "Insert");
+    // Main Insert button (normal button)
+    insertButton_ = new Fl_Button(0, 0, btnW - dropW, btnH, "Insert");
     insertButton_->labelsize(10); 
     insertButton_->box(FL_FLAT_BOX);
     insertButton_->color(FL_LIGHT2);
-    insertButton_->tooltip("Insert Event (Insert Key) / Right-click for Multiple");
-    // Left click inserts single event
+    insertButton_->tooltip("Insert Event (Insert Key)");
     insertButton_->callback([](Fl_Widget* w, void* v) {
         static_cast<EventList*>(v)->insertEvent();
     }, this);
+    
+    // Small dropdown menu button (arrow only)
+    insertMenuButton_ = new Fl_Menu_Button(0, 0, dropW, btnH, "@#>");
+    insertMenuButton_->labelsize(10);
+    insertMenuButton_->box(FL_FLAT_BOX);
+    insertMenuButton_->color(FL_LIGHT2);
+    insertMenuButton_->tooltip("Insert Multiple Events");
     // Add menu items for Insert Multiple
-    insertButton_->add("Insert Multiple/Whole Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+    insertMenuButton_->add("Whole Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
         static_cast<EventList*>(v)->insertMultipleEvents(1);
     }, this);
-    insertButton_->add("Insert Multiple/Half Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+    insertMenuButton_->add("Half Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
         static_cast<EventList*>(v)->insertMultipleEvents(2);
     }, this);
-    insertButton_->add("Insert Multiple/Quarter Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+    insertMenuButton_->add("Quarter Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
         static_cast<EventList*>(v)->insertMultipleEvents(4);
     }, this);
-    insertButton_->add("Insert Multiple/Eighth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+    insertMenuButton_->add("Eighth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
         static_cast<EventList*>(v)->insertMultipleEvents(8);
     }, this);
-    insertButton_->add("Insert Multiple/Sixteenth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
+    insertMenuButton_->add("Sixteenth Notes (1 measure)", 0, [](Fl_Widget*, void* v) {
         static_cast<EventList*>(v)->insertMultipleEvents(16);
     }, this);
 
@@ -266,9 +274,11 @@ void EventList::resize(int X, int Y, int W, int H) {
     int btnY = Y + (headerHeight - btnH) / 2;
     int right = X + W;
     
+    int dropW = 14;
     if (scaleButton_) scaleButton_->resize(right - btnW - 2, btnY, btnW, btnH);
     if (deleteButton_) deleteButton_->resize(right - 2*btnW - 4, btnY, btnW, btnH);
-    if (insertButton_) insertButton_->resize(right - 3*btnW - 6, btnY, btnW, btnH);
+    if (insertMenuButton_) insertMenuButton_->resize(right - 3*btnW - 6 + (btnW - dropW), btnY, dropW, btnH);
+    if (insertButton_) insertButton_->resize(right - 3*btnW - 6, btnY, btnW - dropW, btnH);
     
     // Ensure content widget width tracks the scroll view width
     if (scroll_ && rowsWidget_) {
